@@ -19,7 +19,23 @@ describe("package metadata", () => {
 
     expect(readme).toContain("# coding-agent-runner");
     expect(readme).toContain("npm install coding-agent-runner");
+    expect(readme).toContain("[English](README.md)");
+    expect(readme).toContain("[简体中文](README.zh-CN.md)");
     expect(readme).not.toContain("coding-cli-runner");
+  });
+
+  it("ships localized readmes", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf-8")) as { files: string[] };
+    const zh = readFileSync("README.zh-CN.md", "utf-8");
+
+    expect(pkg.files).toContain("README*.md");
+    expect(zh).toContain("# coding-agent-runner");
+    expect(zh).toContain("[English](README.md)");
+    expect(zh).toContain("[简体中文](README.zh-CN.md)");
+    expect(zh).toContain("本地 coding agent CLI");
+    expect(zh).toContain("runCliAgent");
+    expect(zh).toContain("detectCliAgents");
+    expect(zh).toContain("npm pack --dry-run");
   });
 
   it("documents the friendly public API", () => {
@@ -42,5 +58,6 @@ describe("package metadata", () => {
     expect(agents).toContain("npm run build");
     expect(agents).toContain("npm pack --dry-run");
     expect(agents).toContain("Do not import AI Workbench");
+    expect(agents).toContain("README.zh-CN.md");
   });
 });

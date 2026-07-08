@@ -1,5 +1,7 @@
 # coding-agent-runner
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 Run local coding-agent CLIs from Node.js through one small Node-only API.
 
 `coding-agent-runner` wraps the process and protocol details for:

@@ -61,6 +61,14 @@ npm pack --dry-run
 - For new behavior, write a failing test first, then implement the minimum code to pass it.
 - Keep docs-sensitive package guarantees covered by tests in `tests/package-metadata.test.ts`.
 
+## Documentation
+
+- `README.md` is the primary English README for npm and GitHub.
+- `README.zh-CN.md` is the Simplified Chinese README.
+- Keep both README files aligned when public APIs, provider support, install commands, safety notes, or verification commands change.
+- Keep language switch links at the top of each README.
+- `package.json.files` must include `README*.md` so localized README files are included in npm pack output.
+
 ## Implementation Notes
 
 - Friendly provider ids live in `src/provider-ids.ts`.
@@ -76,4 +84,4 @@ Before publishing:
 1. Confirm the `coding-agent-runner` npm package name is available or owned.
 2. Confirm GitHub repository metadata in `package.json`.
 3. Run the full local verification commands.
-4. Check `npm pack --dry-run` includes only `dist`, `README.md`, `LICENSE`, and `package.json`.
+4. Check `npm pack --dry-run` includes only `dist`, `README*.md`, `LICENSE`, and `package.json`.

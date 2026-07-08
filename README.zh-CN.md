@@ -1,0 +1,242 @@
+# coding-agent-runner
+
+[English](README.md) | [简体中文](README.zh-CN.md)
+
+通过一个轻量的 Node-only API 调用本地 coding agent CLI。
+
+`coding-agent-runner` 封装了这些本地 provider 的进程启动和 stdio 协议细节：
+
+- `codex`：通过 `codex app-server --listen stdio://` 调用 Codex CLI
+- `claude`：通过 Claude Code 原生 `stream-json` 调用
+- `cursor`：通过 `cursor-agent acp` 调用 Cursor Agent
+- `opencode`：通过 `opencode acp` 调用 OpenCode
+- `pi`：通过 `pi-acp` 调用 Pi
+
+它不提供 UI、数据库、任务队列、沙箱、凭据管理或记忆层。它只负责启动本地 CLI 进程、读写对应 stdio 协议、归一化流式事件，并返回本轮执行结果。你的本地应用可以自行决定如何渲染、存储或编排这些结果。
+
+## 适用场景
+
+当你在构建本地应用、桌面应用、daemon 或开发者工具，并希望从 Node.js 调用本机已安装的 coding agent CLI 时，可以使用这个包。
+
+适合：
+
+- 在桌面应用里调用 Codex 或 Claude Code。
+- 把 Cursor/OpenCode/Pi 的工具调用进度流式展示到自己的 UI。
+- 检测用户机器上安装了哪些 coding CLI。
+- 在不接入大型 agent 平台的情况下，保留轻量多轮会话。
+
+不适合：
+
+- 纯浏览器应用。
+- 托管 LLM API 调用。
+- 默认沙箱隔离。
+- provider 安装、登录、计费或凭据管理。
+
+## 安装
+
+```bash
+npm install coding-agent-runner
+```
+
+你需要自行安装并登录底层 CLI。例如 `codex`、`claude`、`cursor-agent`、`opencode` 或 `pi-acp` 需要在 `PATH` 上可用。
+
+运行要求：
+
+- Node.js 20 或更新版本
+- ESM 项目，或使用动态 `import()`
+- 至少安装一个受支持的本地 provider CLI
+
+## 快速开始
+
+```ts
+import { runCliAgent } from "coding-agent-runner";
+
+const result = await runCliAgent({
+  provider: "codex",
+  cwd: process.cwd(),
+  prompt: "Inspect this repository and summarize the test command.",
+});
+
+console.log(result.output);
+```
+
+`runCliAgent()` 是最简单的入口。它会创建 provider 进程，执行一个 prompt，消费流式输出，关闭进程，并返回最终文本。
+
+## 流式事件
+
+```ts
+import { streamCliAgent } from "coding-agent-runner";
+
+for await (const event of streamCliAgent({
+  provider: "claude",
+  cwd: process.cwd(),
+  prompt: "Add tests for the auth module.",
+})) {
+  if (event.type === "text_delta") process.stdout.write(event.text);
+  if (event.type === "tool_start") console.log("tool:", event.name);
+}
+```
+
+`streamCliAgent()` 仍然是单轮调用，但会在 provider 执行过程中持续产出归一化事件。
+
+## 有状态多轮 Runner
+
+```ts
+import { createCodingAgentRunner } from "coding-agent-runner";
+
+const runner = await createCodingAgentRunner({
+  provider: "cursor",
+  cwd: "/path/to/project",
+});
+
+try {
+  for await (const event of runner.stream({ prompt: "Inspect the codebase." })) {
+    console.log(event);
+  }
+
+  for await (const event of runner.stream({ prompt: "Now make the change." })) {
+    console.log(event);
+  }
+} finally {
+  await runner.close();
+}
+```
+
+有状态 runner 会在内存里保存上一次 provider session id，并在下一轮调用时复用。
+
+## 检测本地 CLI
+
+```ts
+import { detectCliAgents } from "coding-agent-runner";
+
+const agents = await detectCliAgents();
+console.table(agents);
+```
+
+检测是 best-effort。它会扫描 `PATH`，用超时机制运行每个 provider 的版本命令，不会尝试登录，也不会修改 provider 状态。
+
+## 自定义命令
+
+```ts
+import { runCliAgent } from "coding-agent-runner";
+
+await runCliAgent({
+  provider: "opencode",
+  cwd: process.cwd(),
+  prompt: "Summarize this package.",
+  spawn: {
+    command: "/custom/bin/opencode",
+    args: ["acp"],
+  },
+});
+```
+
+当宿主应用内置 CLI adapter，或 CLI 不在 `PATH` 上时，可以使用命令覆盖。
+
+## 取消执行
+
+```ts
+import { runCliAgent } from "coding-agent-runner";
+
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(new Error("Timed out")), 30_000);
+
+try {
+  await runCliAgent({
+    provider: "claude",
+    cwd: process.cwd(),
+    prompt: "Run the test suite and fix failures.",
+    signal: controller.signal,
+  });
+} finally {
+  clearTimeout(timeout);
+}
+```
+
+取消是 best-effort，具体行为取决于 provider。这个包会把 abort signal 传给当前 transport，并清理自己拥有的子进程。
+
+## Wrapper 与沙箱
+
+这个包不会默认沙箱化 provider 进程。如果你需要隔离，可以传入 wrapper 命令：
+
+```ts
+await runCliAgent({
+  provider: "codex",
+  cwd: process.cwd(),
+  prompt: "Inspect this repository.",
+  spawn: {
+    wrapper: {
+      command: "sandbox-exec",
+      args: ["-f", "/path/to/profile.sb"],
+    },
+  },
+});
+```
+
+wrapper 调用形式为：
+
+```text
+<wrapper.command> <wrapper.args...> <provider.command> <provider.args...>
+```
+
+## 事件类型
+
+友好流式 API 会产出：
+
+```ts
+type CodingAgentEvent =
+  | { type: "text_delta"; text: string }
+  | { type: "thinking_delta"; text: string }
+  | { type: "tool_start"; id: string; name: string; input?: unknown }
+  | { type: "tool_update"; id: string; name: string; input?: unknown; output?: string }
+  | { type: "tool_end"; id: string; name: string; output: string; isError: boolean }
+  | { type: "done"; output: string; sessionId: string | null; stopReason: string }
+  | { type: "error"; error: Error };
+```
+
+## 底层 API
+
+这个包也导出底层构件，方便高级调用方使用：
+
+- `runAgentTurn()`：现有的单轮 provider dispatcher
+- `runCodexTurn()` 和 `acquireCodexAppServer()`
+- `runClaudeNative()`
+- `AcpConnection`
+- `mapStreamEventToAgentEvents()`
+- `buildDefaultSpawn()` 和 `listProviderConfigs()`
+
+底层 API 使用内部 provider id：`codex-cli`、`claude-code-cli`、`cursor-cli`、`opencode-cli`、`pi-cli`。
+
+## Provider ID
+
+友好 API 接受短 provider id：
+
+| Public id | 默认命令 | Internal id |
+| --- | --- | --- |
+| `codex` | `codex app-server --listen stdio://` | `codex-cli` |
+| `claude` | `claude -p --output-format stream-json --input-format stream-json --verbose` | `claude-code-cli` |
+| `cursor` | `cursor-agent acp` | `cursor-cli` |
+| `opencode` | `opencode acp` | `opencode-cli` |
+| `pi` | `pi-acp` | `pi-cli` |
+
+## 安全说明
+
+这个库不会沙箱化 provider 进程。被启动的 CLI 会拥有你传给它的工作目录、环境变量、凭据和文件系统权限。如果你需要隔离，请传入 `wrapper`，或在自己的沙箱/容器里运行这个包。
+
+Claude Code 默认不会启用权限绕过。如果需要添加 `--dangerously-skip-permissions`，请直接调用底层 `runClaudeNative()` 并设置 `dangerouslySkipPermissions: true`。
+
+## 开发
+
+```bash
+npm install
+npm run typecheck
+npm test
+npm run build
+npm pack --dry-run
+```
+
+`npm run check` 会运行 typecheck、测试和构建。
+
+## License
+
+MIT
