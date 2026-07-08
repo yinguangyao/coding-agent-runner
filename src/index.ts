@@ -1,4 +1,4 @@
-/** Public API for coding-cli-runner. */
+/** Public API for coding-agent-runner. */
 
 export * from "./types.js";
 export * from "./adapters.js";

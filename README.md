@@ -1,4 +1,4 @@
-# coding-cli-runner
+# coding-agent-runner
 
 Run coding-agent CLIs from Node.js through one small API.
 
@@ -15,7 +15,7 @@ It is intentionally narrow: it does not provide a UI, database, task queue, sand
 ## Install
 
 ```bash
-npm install coding-cli-runner
+npm install coding-agent-runner
 ```
 
 You must install and authenticate the underlying CLI you want to run. For example, `codex`, `claude`, `cursor-agent`, `opencode`, or `pi-acp` must be available on `PATH`.
@@ -23,7 +23,7 @@ You must install and authenticate the underlying CLI you want to run. For exampl
 ## Quick Start
 
 ```ts
-import { runAgentTurn } from "coding-cli-runner";
+import { runAgentTurn } from "coding-agent-runner";
 
 const result = await runAgentTurn({
   provider: "codex-cli",
@@ -40,7 +40,7 @@ console.log(result.status, result.sessionId);
 ## Provider Defaults
 
 ```ts
-import { buildDefaultSpawn, listProviderConfigs } from "coding-cli-runner";
+import { buildDefaultSpawn, listProviderConfigs } from "coding-agent-runner";
 
 console.log(listProviderConfigs());
 console.log(buildDefaultSpawn("cursor-cli", { cwd: "/repo" }));

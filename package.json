@@ -1,5 +1,5 @@
 {
-  "name": "coding-cli-runner",
+  "name": "coding-agent-runner",
   "version": "0.1.0",
   "description": "Run Codex CLI, Claude Code, Cursor Agent, OpenCode, and Pi ACP from Node.js.",
   "type": "module",
@@ -35,12 +35,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yinguangyao/coding-cli-runner.git"
+    "url": "git+https://github.com/yinguangyao/coding-agent-runner.git"
   },
   "bugs": {
-    "url": "https://github.com/yinguangyao/coding-cli-runner/issues"
+    "url": "https://github.com/yinguangyao/coding-agent-runner/issues"
   },
-  "homepage": "https://github.com/yinguangyao/coding-cli-runner#readme",
+  "homepage": "https://github.com/yinguangyao/coding-agent-runner#readme",
   "engines": {
     "node": ">=20"
   },

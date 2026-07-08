@@ -128,7 +128,7 @@ export async function acquireCodexAppServer(
   opts.signal?.addEventListener("abort", onAbort, { once: true });
   try {
     const initParams: InitializeParams = {
-      clientInfo: opts.clientInfo ?? { name: "coding-cli-runner", title: "coding-cli-runner", version: "0.1.0" },
+      clientInfo: opts.clientInfo ?? { name: "coding-agent-runner", title: "coding-agent-runner", version: "0.1.0" },
       capabilities: { experimentalApi: true },
     };
     await client.sendRequest("initialize", initParams);

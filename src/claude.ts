@@ -230,7 +230,7 @@ export function buildClaudeSpawnSpec(params: Pick<
 }
 
 function writeClaudeMcpConfig(servers: ClaudeMcpServerSpec[]): string {
-  const file = path.join(os.tmpdir(), `coding-cli-runner-claude-mcp-${crypto.randomUUID()}.json`);
+  const file = path.join(os.tmpdir(), `coding-agent-runner-claude-mcp-${crypto.randomUUID()}.json`);
   fs.writeFileSync(file, JSON.stringify({
     mcpServers: Object.fromEntries(servers.map((server) => [
       server.name,
