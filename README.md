@@ -1,6 +1,6 @@
 # coding-agent-runner
 
-Run local coding-agent CLIs from Node.js through one small API.
+Run local coding-agent CLIs from Node.js through one small Node-only API.
 
 `coding-agent-runner` wraps the process and protocol details for:
 
@@ -10,7 +10,25 @@ Run local coding-agent CLIs from Node.js through one small API.
 - `opencode`: OpenCode via `opencode acp`
 - `pi`: Pi via `pi-acp`
 
-It does not provide a UI, database, task queue, sandbox, credential manager, or memory layer. It starts local CLI processes, speaks their stdio protocols, normalizes streaming events, and returns turn results.
+It does not provide a UI, database, task queue, sandbox, credential manager, or memory layer. It starts local CLI processes, speaks their stdio protocols, normalizes streaming events, and returns turn results that local apps can render or store however they want.
+
+## When To Use It
+
+Use this package when you are building a local app, desktop app, daemon, or developer tool that needs to call installed coding agents from Node.js.
+
+Good fits:
+
+- Run Codex or Claude Code from a desktop app.
+- Stream Cursor/OpenCode/Pi tool progress into your own UI.
+- Detect which coding CLIs are installed on a user's machine.
+- Keep a lightweight multi-turn session without adopting a larger agent platform.
+
+Not a fit:
+
+- Browser-only applications.
+- Hosted LLM API calls.
+- Sandboxed execution by default.
+- Provider installation, login, billing, or credential management.
 
 ## Install
 
@@ -19,6 +37,12 @@ npm install coding-agent-runner
 ```
 
 Install and authenticate the underlying CLI separately. For example, `codex`, `claude`, `cursor-agent`, `opencode`, or `pi-acp` must be available on `PATH`.
+
+Runtime requirements:
+
+- Node.js 20 or newer
+- ESM project or dynamic `import()`
+- At least one supported provider CLI installed locally
 
 ## Quick Start
 
@@ -34,6 +58,8 @@ const result = await runCliAgent({
 console.log(result.output);
 ```
 
+`runCliAgent()` is the simplest API. It creates a provider process, runs one prompt, consumes the stream, closes the process, and returns the final output.
+
 ## Streaming
 
 ```ts
@@ -48,6 +74,8 @@ for await (const event of streamCliAgent({
   if (event.type === "tool_start") console.log("tool:", event.name);
 }
 ```
+
+`streamCliAgent()` is still one-shot, but it yields normalized progress events as the provider runs.
 
 ## Stateful Multi-Turn Runner
 
@@ -83,6 +111,8 @@ const agents = await detectCliAgents();
 console.table(agents);
 ```
 
+Detection is best-effort. It scans `PATH`, runs each provider's version command with a timeout, and does not try to log in or mutate provider state.
+
 ## Command Overrides
 
 ```ts
@@ -97,6 +127,54 @@ await runCliAgent({
     args: ["acp"],
   },
 });
+```
+
+Use command overrides when your host app bundles a CLI adapter or stores it outside `PATH`.
+
+## Cancellation
+
+```ts
+import { runCliAgent } from "coding-agent-runner";
+
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(new Error("Timed out")), 30_000);
+
+try {
+  await runCliAgent({
+    provider: "claude",
+    cwd: process.cwd(),
+    prompt: "Run the test suite and fix failures.",
+    signal: controller.signal,
+  });
+} finally {
+  clearTimeout(timeout);
+}
+```
+
+Cancellation is best-effort and provider-specific. The package forwards the abort signal to the active transport and cleans up child processes it owns.
+
+## Wrappers And Sandboxes
+
+This package does not sandbox provider processes. If you need isolation, pass a wrapper command:
+
+```ts
+await runCliAgent({
+  provider: "codex",
+  cwd: process.cwd(),
+  prompt: "Inspect this repository.",
+  spawn: {
+    wrapper: {
+      command: "sandbox-exec",
+      args: ["-f", "/path/to/profile.sb"],
+    },
+  },
+});
+```
+
+The wrapper is invoked as:
+
+```text
+<wrapper.command> <wrapper.args...> <provider.command> <provider.args...>
 ```
 
 ## Events
@@ -127,6 +205,18 @@ The package also exports the lower-level building blocks:
 
 Lower-level APIs use the internal provider ids: `codex-cli`, `claude-code-cli`, `cursor-cli`, `opencode-cli`, and `pi-cli`.
 
+## Provider IDs
+
+Friendly APIs accept short provider ids:
+
+| Public id | Default command | Internal id |
+| --- | --- | --- |
+| `codex` | `codex app-server --listen stdio://` | `codex-cli` |
+| `claude` | `claude -p --output-format stream-json --input-format stream-json --verbose` | `claude-code-cli` |
+| `cursor` | `cursor-agent acp` | `cursor-cli` |
+| `opencode` | `opencode acp` | `opencode-cli` |
+| `pi` | `pi-acp` | `pi-cli` |
+
 ## Safety
 
 This library does not sandbox provider processes. The spawned CLI runs with the working directory, environment, credentials, and filesystem permissions you give it. If you need isolation, pass a `wrapper` command in spawn options or run this package inside your own sandbox/container.
@@ -137,11 +227,13 @@ Claude Code permission bypass is not enabled by default. To add `--dangerously-s
 
 ```bash
 npm install
-npm test
 npm run typecheck
+npm test
 npm run build
 npm pack --dry-run
 ```
+
+`npm run check` runs typecheck, tests, and build.
 
 ## License
 

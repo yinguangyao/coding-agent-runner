@@ -29,5 +29,18 @@ describe("package metadata", () => {
     expect(readme).toContain("streamCliAgent");
     expect(readme).toContain("createCodingAgentRunner");
     expect(readme).toContain("detectCliAgents");
+    expect(readme).toContain("Command Overrides");
+    expect(readme).toContain("Cancellation");
+  });
+
+  it("provides agent contributor instructions", () => {
+    const agents = readFileSync("AGENTS.md", "utf-8");
+
+    expect(agents).toContain("coding-agent-runner");
+    expect(agents).toContain("npm test");
+    expect(agents).toContain("npm run typecheck");
+    expect(agents).toContain("npm run build");
+    expect(agents).toContain("npm pack --dry-run");
+    expect(agents).toContain("Do not import AI Workbench");
   });
 });
