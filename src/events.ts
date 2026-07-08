@@ -120,8 +120,7 @@ function mapCodexNotification(method: string, params: unknown): AgentStreamEvent
     const item = (params as { item?: Record<string, unknown> }).item;
     if (!item) return [];
     if (item.type === "agentMessage") {
-      const text = readString(item.text);
-      return text ? [{ type: "message_delta", text }] : [];
+      return [];
     }
     if (item.type === "commandExecution") {
       return [{

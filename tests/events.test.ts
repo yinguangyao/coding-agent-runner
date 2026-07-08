@@ -60,6 +60,14 @@ describe("stream event mapping", () => {
 
     expect(mapStreamEventToAgentEvents("item/completed", {
       item: {
+        id: "msg-1",
+        type: "agentMessage",
+        text: "hello",
+      },
+    })).toEqual([]);
+
+    expect(mapStreamEventToAgentEvents("item/completed", {
+      item: {
         id: "cmd-1",
         type: "commandExecution",
         command: "npm test",
