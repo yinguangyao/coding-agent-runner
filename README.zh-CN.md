@@ -12,6 +12,8 @@
 - `opencode`：通过 `opencode acp` 调用 OpenCode
 - `pi`：通过 `pi-acp` 调用 Pi
 
+它的定位是对标 ACP 这类本地 agent 互操作协议，但提供更友好的应用层 API。应用开发者不需要直接处理各 provider 的启动命令、stdio transport、JSON-RPC 结构、`stream-json` 差异、取消执行和 session id 管理；只需要选择 provider，传入 `cwd` 和 `prompt`，再消费归一化事件或最终结果。
+
 它不提供 UI、数据库、任务队列、沙箱、凭据管理或记忆层。它只负责启动本地 CLI 进程、读写对应 stdio 协议、归一化流式事件，并返回本轮执行结果。你的本地应用可以自行决定如何渲染、存储或编排这些结果。
 
 ## 适用场景

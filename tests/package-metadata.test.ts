@@ -40,7 +40,12 @@ describe("package metadata", () => {
 
   it("documents the friendly public API", () => {
     const readme = readFileSync("README.md", "utf-8");
+    const zh = readFileSync("README.zh-CN.md", "utf-8");
 
+    expect(readme).toContain("ACP-style local agent interoperability");
+    expect(readme).toContain("friendlier application API");
+    expect(zh).toContain("对标 ACP");
+    expect(zh).toContain("更友好的应用层 API");
     expect(readme).toContain("runCliAgent");
     expect(readme).toContain("streamCliAgent");
     expect(readme).toContain("createCodingAgentRunner");

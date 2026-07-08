@@ -12,6 +12,8 @@ Run local coding-agent CLIs from Node.js through one small Node-only API.
 - `opencode`: OpenCode via `opencode acp`
 - `pi`: Pi via `pi-acp`
 
+It is positioned next to ACP-style local agent interoperability, but with a friendlier application API. Instead of making every app deal with provider-specific commands, stdio transports, JSON-RPC shapes, `stream-json` differences, cancellation, and session ids directly, this package exposes a small SDK surface: pick a provider, pass `cwd` and `prompt`, then consume normalized events or a final result.
+
 It does not provide a UI, database, task queue, sandbox, credential manager, or memory layer. It starts local CLI processes, speaks their stdio protocols, normalizes streaming events, and returns turn results that local apps can render or store however they want.
 
 ## When To Use It
