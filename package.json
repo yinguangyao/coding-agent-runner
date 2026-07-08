@@ -1,0 +1,60 @@
+{
+  "name": "coding-cli-runner",
+  "version": "0.1.0",
+  "description": "Run Codex CLI, Claude Code, Cursor Agent, OpenCode, and Pi ACP from Node.js.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "npm run typecheck && npm test && npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "codex",
+    "claude-code",
+    "cursor-agent",
+    "opencode",
+    "pi-acp",
+    "agent-client-protocol"
+  ],
+  "author": "yinguangyao",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yinguangyao/coding-cli-runner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yinguangyao/coding-cli-runner/issues"
+  },
+  "homepage": "https://github.com/yinguangyao/coding-cli-runner#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "@zed-industries/agent-client-protocol": "^0.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
