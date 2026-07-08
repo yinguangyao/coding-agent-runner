@@ -21,4 +21,13 @@ describe("package metadata", () => {
     expect(readme).toContain("npm install coding-agent-runner");
     expect(readme).not.toContain("coding-cli-runner");
   });
+
+  it("documents the friendly public API", () => {
+    const readme = readFileSync("README.md", "utf-8");
+
+    expect(readme).toContain("runCliAgent");
+    expect(readme).toContain("streamCliAgent");
+    expect(readme).toContain("createCodingAgentRunner");
+    expect(readme).toContain("detectCliAgents");
+  });
 });

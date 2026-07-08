@@ -1,16 +1,16 @@
 # coding-agent-runner
 
-Run coding-agent CLIs from Node.js through one small API.
+Run local coding-agent CLIs from Node.js through one small API.
 
-This package wraps the process/protocol details for:
+`coding-agent-runner` wraps the process and protocol details for:
 
-- `codex-cli`: `codex app-server --listen stdio://`
-- `claude-code-cli`: native Claude Code `stream-json`
-- `cursor-cli`: `cursor-agent acp`
-- `opencode-cli`: `opencode acp`
-- `pi-cli`: `pi-acp`
+- `codex`: Codex CLI via `codex app-server --listen stdio://`
+- `claude`: Claude Code via native `stream-json`
+- `cursor`: Cursor Agent via `cursor-agent acp`
+- `opencode`: OpenCode via `opencode acp`
+- `pi`: Pi via `pi-acp`
 
-It is intentionally narrow: it does not provide a UI, database, task queue, sandbox, credential manager, or agent memory layer. It starts local CLI processes, speaks their stdio protocols, normalizes streaming events, and returns a turn result.
+It does not provide a UI, database, task queue, sandbox, credential manager, or memory layer. It starts local CLI processes, speaks their stdio protocols, normalizes streaming events, and returns turn results.
 
 ## Install
 
@@ -18,64 +18,114 @@ It is intentionally narrow: it does not provide a UI, database, task queue, sand
 npm install coding-agent-runner
 ```
 
-You must install and authenticate the underlying CLI you want to run. For example, `codex`, `claude`, `cursor-agent`, `opencode`, or `pi-acp` must be available on `PATH`.
+Install and authenticate the underlying CLI separately. For example, `codex`, `claude`, `cursor-agent`, `opencode`, or `pi-acp` must be available on `PATH`.
 
 ## Quick Start
 
 ```ts
-import { runAgentTurn } from "coding-agent-runner";
+import { runCliAgent } from "coding-agent-runner";
 
-const result = await runAgentTurn({
-  provider: "codex-cli",
+const result = await runCliAgent({
+  provider: "codex",
   cwd: process.cwd(),
   prompt: "Inspect this repository and summarize the test command.",
-  onEvent(event) {
-    if (event.type === "message_delta") process.stdout.write(event.text);
-  },
 });
 
-console.log(result.status, result.sessionId);
+console.log(result.output);
 ```
 
-## Provider Defaults
+## Streaming
 
 ```ts
-import { buildDefaultSpawn, listProviderConfigs } from "coding-agent-runner";
+import { streamCliAgent } from "coding-agent-runner";
 
-console.log(listProviderConfigs());
-console.log(buildDefaultSpawn("cursor-cli", { cwd: "/repo" }));
+for await (const event of streamCliAgent({
+  provider: "claude",
+  cwd: process.cwd(),
+  prompt: "Add tests for the auth module.",
+})) {
+  if (event.type === "text_delta") process.stdout.write(event.text);
+  if (event.type === "tool_start") console.log("tool:", event.name);
+}
 ```
 
-Default commands:
+## Stateful Multi-Turn Runner
 
-| Provider | Command |
-| --- | --- |
-| `codex-cli` | `codex app-server --listen stdio://` |
-| `claude-code-cli` | `claude -p --output-format stream-json --input-format stream-json` |
-| `cursor-cli` | `cursor-agent acp` |
-| `opencode-cli` | `opencode acp` |
-| `pi-cli` | `pi-acp` |
+```ts
+import { createCodingAgentRunner } from "coding-agent-runner";
+
+const runner = await createCodingAgentRunner({
+  provider: "cursor",
+  cwd: "/path/to/project",
+});
+
+try {
+  for await (const event of runner.stream({ prompt: "Inspect the codebase." })) {
+    console.log(event);
+  }
+
+  for await (const event of runner.stream({ prompt: "Now make the change." })) {
+    console.log(event);
+  }
+} finally {
+  await runner.close();
+}
+```
+
+The stateful runner keeps the last provider session id in memory and reuses it on the next turn.
+
+## Detect Local CLIs
+
+```ts
+import { detectCliAgents } from "coding-agent-runner";
+
+const agents = await detectCliAgents();
+console.table(agents);
+```
+
+## Command Overrides
+
+```ts
+import { runCliAgent } from "coding-agent-runner";
+
+await runCliAgent({
+  provider: "opencode",
+  cwd: process.cwd(),
+  prompt: "Summarize this package.",
+  spawn: {
+    command: "/custom/bin/opencode",
+    args: ["acp"],
+  },
+});
+```
 
 ## Events
 
-All transports emit the same small event union:
+The friendly streaming API emits:
 
 ```ts
-type AgentStreamEvent =
-  | { type: "message_delta"; text: string }
+type CodingAgentEvent =
+  | { type: "text_delta"; text: string }
   | { type: "thinking_delta"; text: string }
   | { type: "tool_start"; id: string; name: string; input?: unknown }
   | { type: "tool_update"; id: string; name: string; input?: unknown; output?: string }
   | { type: "tool_end"; id: string; name: string; output: string; isError: boolean }
-  | { type: "result"; text: string; isError: boolean };
+  | { type: "done"; output: string; sessionId: string | null; stopReason: string }
+  | { type: "error"; error: Error };
 ```
 
-You can also use the lower-level exports directly:
+## Lower-Level API
 
+The package also exports the lower-level building blocks:
+
+- `runAgentTurn()` for the existing one-shot provider dispatcher
 - `runCodexTurn()` and `acquireCodexAppServer()`
 - `runClaudeNative()`
 - `AcpConnection`
 - `mapStreamEventToAgentEvents()`
+- `buildDefaultSpawn()` and `listProviderConfigs()`
+
+Lower-level APIs use the internal provider ids: `codex-cli`, `claude-code-cli`, `cursor-cli`, `opencode-cli`, and `pi-cli`.
 
 ## Safety
 
@@ -90,6 +140,7 @@ npm install
 npm test
 npm run typecheck
 npm run build
+npm pack --dry-run
 ```
 
 ## License
