@@ -90,4 +90,33 @@ describe("runAgentTurn", () => {
     }));
     expect(close).toHaveBeenCalledTimes(1);
   });
+
+  it("does not prompt an ACP provider when the signal aborts during session setup", async () => {
+    const controller = new AbortController();
+    const ensureSession = vi.fn(async () => {
+      controller.abort(new Error("setup cancelled"));
+      return "acp-session";
+    });
+    const prompt = vi.fn(async () => ({ stopReason: "end_turn" as const, crashReason: null }));
+    const close = vi.fn(async () => undefined);
+    const spawnAcpConnection = vi.fn(async () => ({ ensureSession, prompt, close }));
+
+    const result = await runAgentTurn({
+      provider: "cursor-cli",
+      cwd: "/repo",
+      prompt: "hello",
+      signal: controller.signal,
+      deps: { spawnAcpConnection },
+    });
+
+    expect(result).toMatchObject({
+      provider: "cursor-cli",
+      status: "cancelled",
+      output: "",
+      sessionId: "acp-session",
+      errorMessage: "setup cancelled",
+    });
+    expect(prompt).not.toHaveBeenCalled();
+    expect(close).toHaveBeenCalledTimes(1);
+  });
 });

@@ -119,6 +119,15 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
       cwd: opts.cwd,
       logger: opts.logger,
     });
+    if (signal.aborted) {
+      return {
+        provider: opts.provider,
+        status: "cancelled",
+        output,
+        sessionId: acpSessionId,
+        errorMessage: readAbortReason(signal) ?? "cancelled",
+      };
+    }
     const outcome = await conn.prompt({
       acpSessionId,
       prompt: opts.prompt,
@@ -164,4 +173,11 @@ function mapAcpStopReason(outcome: PromptOutcome): AgentTurnStatus {
   if (outcome.stopReason === "crashed") return "failed";
   if (["cancelled", "canceled", "aborted", "interrupted"].includes(outcome.stopReason)) return "cancelled";
   return "completed";
+}
+
+function readAbortReason(signal: AbortSignal): string | null {
+  const reason = signal.reason;
+  if (typeof reason === "string" && reason.trim()) return reason.trim();
+  if (reason instanceof Error && reason.message.trim()) return reason.message.trim();
+  return null;
 }

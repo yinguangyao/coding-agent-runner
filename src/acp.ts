@@ -56,6 +56,7 @@ export class AcpConnection {
   private readonly pendingPrompts = new Set<PendingPrompt>();
   private closed = false;
   private exitReason: string | null = null;
+  private authenticated = false;
 
   readonly agentCapabilities: acp.AgentCapabilities;
 
@@ -66,6 +67,7 @@ export class AcpConnection {
     private readonly fanout: Map<string, SessionUpdateHandler>,
     private readonly logger: RunnerLogger,
     agentCapabilities: acp.AgentCapabilities,
+    private readonly authMethods: acp.AuthMethod[],
   ) {
     this.agentCapabilities = agentCapabilities;
   }
@@ -120,6 +122,7 @@ export class AcpConnection {
       fanout,
       logger,
       initResp.agentCapabilities ?? {},
+      initResp.authMethods ?? [],
     );
     conn.attachExitHandlers();
     return conn;
@@ -135,7 +138,21 @@ export class AcpConnection {
     if (this.closed) throw new AcpConnectionClosedError(this.exitReason ?? "closed");
     const existing = this.sessionMap.get(params.workbenchSessionId);
     if (existing) return existing;
-    const resp = await this.rpc.newSession({ cwd: params.cwd, mcpServers: params.mcpServers ?? [] });
+    if (params.workbenchSessionId !== "default" && this.agentCapabilities.loadSession === true) {
+      await this.loadSessionWithAuthRetry({
+        sessionId: params.workbenchSessionId,
+        cwd: params.cwd,
+        mcpServers: params.mcpServers,
+        logger: params.logger,
+      });
+      this.sessionMap.set(params.workbenchSessionId, params.workbenchSessionId);
+      params.logger?.info("acp.session.loaded", "loadSession ok", {
+        label: this.spawnParams.label,
+        sessionId: params.workbenchSessionId,
+      });
+      return params.workbenchSessionId;
+    }
+    const resp = await this.newSessionWithAuthRetry(params);
     this.sessionMap.set(params.workbenchSessionId, resp.sessionId);
     params.logger?.info("acp.session.created", "newSession ok", {
       label: this.spawnParams.label,
@@ -229,6 +246,50 @@ export class AcpConnection {
     return !this.closed;
   }
 
+  private async newSessionWithAuthRetry(params: {
+    cwd: string;
+    mcpServers?: acp.McpServer[];
+    logger?: RunnerLogger;
+  }): Promise<acp.NewSessionResponse> {
+    const request = { cwd: params.cwd, mcpServers: params.mcpServers ?? [] };
+    return this.requestWithAuthRetry(() => this.rpc.newSession(request), params.logger);
+  }
+
+  private async loadSessionWithAuthRetry(params: {
+    sessionId: string;
+    cwd: string;
+    mcpServers?: acp.McpServer[];
+    logger?: RunnerLogger;
+  }): Promise<void> {
+    const request = { sessionId: params.sessionId, cwd: params.cwd, mcpServers: params.mcpServers ?? [] };
+    await this.requestWithAuthRetry(() => this.rpc.loadSession(request), params.logger);
+  }
+
+  private async requestWithAuthRetry<T>(
+    request: () => Promise<T>,
+    logger?: RunnerLogger,
+  ): Promise<T> {
+    try {
+      return await request();
+    } catch (err) {
+      if (!isAuthRequiredError(err)) throw err;
+      await this.authenticate(err, logger);
+      return await request();
+    }
+  }
+
+  private async authenticate(err: unknown, logger?: RunnerLogger): Promise<void> {
+    if (this.authenticated) return;
+    const methodId = selectAuthMethodId(this.authMethods, err);
+    if (!methodId) throw err;
+    logger?.info("acp.auth.required", "Authenticating ACP adapter before session setup", {
+      label: this.spawnParams.label,
+      methodId,
+    });
+    await this.rpc.authenticate({ methodId });
+    this.authenticated = true;
+  }
+
   private attachExitHandlers(): void {
     this.child.on("exit", (code, signal) => {
       this.closed = true;
@@ -242,6 +303,30 @@ export class AcpConnection {
       this.logger.error("acp.child_error", err.message, { label: this.spawnParams.label });
     });
   }
+}
+
+function isAuthRequiredError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const obj = err as { code?: unknown; message?: unknown; data?: unknown };
+  const text = `${readUnknownString(obj.message)}\n${readUnknownString((obj.data as { message?: unknown } | undefined)?.message)}`.toLowerCase();
+  return obj.code === -32000 && text.includes("auth");
+}
+
+function selectAuthMethodId(authMethods: acp.AuthMethod[], err: unknown): string | null {
+  const advertised = authMethods.find((method) => method.id)?.id;
+  if (advertised) return advertised;
+  return extractAuthMethodId(err);
+}
+
+function extractAuthMethodId(err: unknown): string | null {
+  if (!err || typeof err !== "object") return null;
+  const obj = err as { message?: unknown; data?: { message?: unknown } };
+  const text = `${readUnknownString(obj.message)}\n${readUnknownString(obj.data?.message)}`;
+  return /methodId\s+['"`]([^'"`\s]+)['"`]/.exec(text)?.[1] ?? null;
+}
+
+function readUnknownString(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 /** Error thrown when an ACP adapter exits during a prompt. */
@@ -332,7 +417,9 @@ function shouldForwardLine(line: string): boolean {
       if (kind && !KNOWN_SESSION_UPDATE_KINDS.has(kind)) return false;
     }
   } catch {
-    // Keep non-JSON stdout lines for the ACP library to decide.
+    // ACP over stdio is JSON-only. Some adapters leak startup logs on stdout;
+    // dropping them keeps the JSON-RPC parser from emitting noisy parse errors.
+    return false;
   }
   return true;
 }
