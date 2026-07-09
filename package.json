@@ -13,12 +13,19 @@
   },
   "files": [
     "dist",
+    "scripts",
     "README*.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "npm run typecheck && npm test && npm run build",
+    "smoke:all": "npm run build && node scripts/smoke-cli.mjs all",
+    "smoke:claude": "npm run build && node scripts/smoke-cli.mjs claude",
+    "smoke:codex": "npm run build && node scripts/smoke-cli.mjs codex",
+    "smoke:cursor": "npm run build && node scripts/smoke-cli.mjs cursor",
+    "smoke:opencode": "npm run build && node scripts/smoke-cli.mjs opencode",
+    "smoke:pi": "npm run build && node scripts/smoke-cli.mjs pi",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

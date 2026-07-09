@@ -56,6 +56,7 @@ import { runCliAgent } from "coding-agent-runner";
 const result = await runCliAgent({
   provider: "codex",
   cwd: process.cwd(),
+  model: "gpt-5",
   prompt: "Inspect this repository and summarize the test command.",
 });
 
@@ -63,6 +64,21 @@ console.log(result.output);
 ```
 
 `runCliAgent()` is the simplest API. It creates a provider process, runs one prompt, consumes the stream, closes the process, and returns the final output.
+
+## Model Selection
+
+Pass `model` on the top-level runner options:
+
+```ts
+await runCliAgent({
+  provider: "claude",
+  cwd: process.cwd(),
+  model: "sonnet",
+  prompt: "Review the staged diff.",
+});
+```
+
+`model` is passed directly to Codex thread startup and Claude Code's `--model` flag. ACP providers (`cursor`, `opencode`, and `pi`) expose model switching inconsistently today; when a provider supports a model flag or env var, pass it through `spawn.args` or `spawn.env`.
 
 ## Streaming
 
@@ -238,6 +254,40 @@ npm pack --dry-run
 ```
 
 `npm run check` runs typecheck, tests, and build.
+
+## Real CLI Smoke Tests
+
+The default test suite uses mocks and protocol fixtures so CI does not need local agent logins. To verify a real installed provider on your machine, run the manual smoke scripts:
+
+```bash
+npm run smoke:claude
+npm run smoke:codex
+npm run smoke:cursor
+npm run smoke:opencode
+npm run smoke:pi
+```
+
+Each smoke script builds the package, starts the real local CLI, checks streaming output, verifies one session resume turn, and checks cancellation. The scripts require the underlying CLI to be installed, authenticated, and available on `PATH`.
+
+To run only the streaming check:
+
+```bash
+npm run smoke:claude -- --stream-only
+```
+
+To run with an explicit model for Codex or Claude:
+
+```bash
+npm run smoke:claude -- --model sonnet
+npm run smoke:codex -- --model gpt-5
+```
+
+To test a CLI outside `PATH`, pass a command override:
+
+```bash
+CAR_OPENCODE_COMMAND=/custom/bin/opencode npm run smoke:opencode
+PI_ACP_BIN=/custom/bin/pi-acp npm run smoke:pi
+```
 
 ## License
 

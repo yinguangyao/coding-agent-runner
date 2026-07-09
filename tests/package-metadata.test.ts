@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 describe("package metadata", () => {
   it("uses the public npm package name", () => {
@@ -44,8 +44,12 @@ describe("package metadata", () => {
 
     expect(readme).toContain("ACP-style local agent interoperability");
     expect(readme).toContain("friendlier application API");
+    expect(readme).toContain("model: \"gpt-5\"");
+    expect(readme).toContain("Model Selection");
     expect(zh).toContain("对标 ACP");
     expect(zh).toContain("更友好的应用层 API");
+    expect(zh).toContain("model: \"gpt-5\"");
+    expect(zh).toContain("模型选择");
     expect(readme).toContain("runCliAgent");
     expect(readme).toContain("streamCliAgent");
     expect(readme).toContain("createCodingAgentRunner");
@@ -64,5 +68,31 @@ describe("package metadata", () => {
     expect(agents).toContain("npm pack --dry-run");
     expect(agents).toContain("Do not import AI Workbench");
     expect(agents).toContain("README.zh-CN.md");
+  });
+
+  it("provides manual smoke scripts for real local CLI execution", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf-8")) as {
+      files: string[];
+      scripts: Record<string, string>;
+    };
+    const readme = readFileSync("README.md", "utf-8");
+    const zh = readFileSync("README.zh-CN.md", "utf-8");
+    const smoke = readFileSync("scripts/smoke-cli.mjs", "utf-8");
+
+    expect(existsSync("scripts/smoke-cli.mjs")).toBe(true);
+    expect(pkg.files).toContain("scripts");
+    expect(pkg.scripts["smoke:claude"]).toBe("npm run build && node scripts/smoke-cli.mjs claude");
+    expect(pkg.scripts["smoke:codex"]).toBe("npm run build && node scripts/smoke-cli.mjs codex");
+    expect(pkg.scripts["smoke:cursor"]).toBe("npm run build && node scripts/smoke-cli.mjs cursor");
+    expect(pkg.scripts["smoke:opencode"]).toBe("npm run build && node scripts/smoke-cli.mjs opencode");
+    expect(pkg.scripts["smoke:pi"]).toBe("npm run build && node scripts/smoke-cli.mjs pi");
+    expect(pkg.scripts["smoke:all"]).toBe("npm run build && node scripts/smoke-cli.mjs all");
+    expect(readme).toContain("Real CLI Smoke Tests");
+    expect(readme).toContain("npm run smoke:claude");
+    expect(readme).toContain("npm run smoke:claude -- --model");
+    expect(zh).toContain("真实 CLI Smoke Test");
+    expect(zh).toContain("npm run smoke:claude");
+    expect(zh).toContain("npm run smoke:claude -- --model");
+    expect(smoke).toContain("--model <id>");
   });
 });

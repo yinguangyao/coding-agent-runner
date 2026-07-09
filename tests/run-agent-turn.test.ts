@@ -14,6 +14,7 @@ describe("runAgentTurn", () => {
     const result = await runAgentTurn({
       provider: "codex-cli",
       cwd: "/repo",
+      model: "gpt-5",
       prompt: "hello",
       deps: { runCodexTurn },
     });
@@ -31,6 +32,7 @@ describe("runAgentTurn", () => {
         args: ["app-server", "--listen", "stdio://"],
         cwd: "/repo",
       },
+      threadStartParams: { model: "gpt-5" },
     }));
   });
 
@@ -46,6 +48,7 @@ describe("runAgentTurn", () => {
     const result = await runAgentTurn({
       provider: "claude-code-cli",
       cwd: "/repo",
+      model: "claude-sonnet-4-5",
       prompt: "hello",
       deps: { runClaudeNative },
     });
@@ -59,6 +62,7 @@ describe("runAgentTurn", () => {
     expect(runClaudeNative).toHaveBeenCalledWith(expect.objectContaining({
       prompt: "hello",
       cwd: "/repo",
+      model: "claude-sonnet-4-5",
     }));
   });
 

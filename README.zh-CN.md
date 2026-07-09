@@ -56,6 +56,7 @@ import { runCliAgent } from "coding-agent-runner";
 const result = await runCliAgent({
   provider: "codex",
   cwd: process.cwd(),
+  model: "gpt-5",
   prompt: "Inspect this repository and summarize the test command.",
 });
 
@@ -63,6 +64,21 @@ console.log(result.output);
 ```
 
 `runCliAgent()` 是最简单的入口。它会创建 provider 进程，执行一个 prompt，消费流式输出，关闭进程，并返回最终文本。
+
+## 模型选择
+
+在顶层 runner 参数上传 `model`：
+
+```ts
+await runCliAgent({
+  provider: "claude",
+  cwd: process.cwd(),
+  model: "sonnet",
+  prompt: "Review the staged diff.",
+});
+```
+
+`model` 会直接传给 Codex 的 thread startup，以及 Claude Code 的 `--model` 参数。ACP provider（`cursor`、`opencode`、`pi`）当前对模型切换的支持不完全一致；如果某个 provider 支持模型 flag 或环境变量，可以通过 `spawn.args` 或 `spawn.env` 透传。
 
 ## 流式事件
 
@@ -238,6 +254,40 @@ npm pack --dry-run
 ```
 
 `npm run check` 会运行 typecheck、测试和构建。
+
+## 真实 CLI Smoke Test
+
+默认测试使用 mock 和协议 fixture，因此 CI 不需要本地 agent 登录。要验证你机器上真实安装的 provider，可以手动运行这些 smoke 脚本：
+
+```bash
+npm run smoke:claude
+npm run smoke:codex
+npm run smoke:cursor
+npm run smoke:opencode
+npm run smoke:pi
+```
+
+每个 smoke 脚本都会先 build 包，再启动真实本地 CLI，验证流式输出、一次 session 恢复，以及取消执行。运行前需要底层 CLI 已安装、已登录，并且在 `PATH` 上可用。
+
+只验证流式输出：
+
+```bash
+npm run smoke:claude -- --stream-only
+```
+
+如果要给 Codex 或 Claude 指定模型：
+
+```bash
+npm run smoke:claude -- --model sonnet
+npm run smoke:codex -- --model gpt-5
+```
+
+如果 CLI 不在 `PATH` 上，可以传命令覆盖：
+
+```bash
+CAR_OPENCODE_COMMAND=/custom/bin/opencode npm run smoke:opencode
+PI_ACP_BIN=/custom/bin/pi-acp npm run smoke:pi
+```
 
 ## License
 
