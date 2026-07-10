@@ -20,6 +20,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "npm run typecheck && npm test && npm run build",
+    "demo": "npm run build && node scripts/demo-cli.mjs",
     "smoke:all": "npm run build && node scripts/smoke-cli.mjs all",
     "smoke:claude": "npm run build && node scripts/smoke-cli.mjs claude",
     "smoke:codex": "npm run build && node scripts/smoke-cli.mjs codex",

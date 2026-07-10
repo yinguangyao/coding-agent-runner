@@ -255,6 +255,38 @@ npm pack --dry-run
 
 `npm run check` 会运行 typecheck、测试和构建。
 
+## 交互式 Demo
+
+当你想自己输入真实 prompt，并像看一个轻量 TUI trace 一样观察执行过程时，可以用 demo：
+
+```bash
+npm run demo -- codex --model gpt-5.5
+npm run demo -- claude --model sonnet
+```
+
+进入 demo 后，直接输入 prompt 并回车。它会打印流式回答文本，也会打印 `thinking_delta`、`tool_start`、`tool_update`、`tool_end`、`done`、`sessionId`、耗时等过程事件。同一个 runner 实例会被复用，因此 provider 支持时，后续输入会延续同一个 session。
+
+如果只想传一次输入并退出：
+
+```bash
+npm run demo -- codex --model gpt-5.5 --prompt "Reply with exactly DEMO_OK"
+```
+
+demo 内置命令：
+
+```text
+/session   查看当前 provider session id
+/cwd       查看工作目录
+/help      查看交互命令
+/exit      退出
+```
+
+如果想看机器可读的事件流：
+
+```bash
+npm run demo -- codex --model gpt-5.5 --prompt "List two test commands" --json-events
+```
+
 ## 真实 CLI Smoke Test
 
 默认测试使用 mock 和协议 fixture，因此 CI 不需要本地 agent 登录。要验证你机器上真实安装的 provider，可以手动运行这些 smoke 脚本：

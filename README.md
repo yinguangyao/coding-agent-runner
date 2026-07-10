@@ -255,6 +255,38 @@ npm pack --dry-run
 
 `npm run check` runs typecheck, tests, and build.
 
+## Interactive Demo
+
+Use the demo when you want to type real prompts and watch normalized runner events as they happen, similar to inspecting a lightweight TUI trace:
+
+```bash
+npm run demo -- codex --model gpt-5.5
+npm run demo -- claude --model sonnet
+```
+
+Inside the demo, type a prompt and press Enter. It prints streamed answer text plus process events such as `thinking_delta`, `tool_start`, `tool_update`, `tool_end`, `done`, `sessionId`, and elapsed time. The same runner instance is reused, so follow-up prompts continue the same session when the provider supports it.
+
+To pass one input and exit:
+
+```bash
+npm run demo -- codex --model gpt-5.5 --prompt "Reply with exactly DEMO_OK"
+```
+
+Useful demo commands:
+
+```text
+/session   Show the current provider session id
+/cwd       Show the working directory
+/help      Show interactive commands
+/exit      Quit
+```
+
+For machine-readable traces:
+
+```bash
+npm run demo -- codex --model gpt-5.5 --prompt "List two test commands" --json-events
+```
+
 ## Real CLI Smoke Tests
 
 The default test suite uses mocks and protocol fixtures so CI does not need local agent logins. To verify a real installed provider on your machine, run the manual smoke scripts:

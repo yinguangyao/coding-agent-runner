@@ -95,4 +95,23 @@ describe("package metadata", () => {
     expect(zh).toContain("npm run smoke:claude -- --model");
     expect(smoke).toContain("--model <id>");
   });
+
+  it("provides an interactive real CLI demo", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf-8")) as {
+      files: string[];
+      scripts: Record<string, string>;
+    };
+    const readme = readFileSync("README.md", "utf-8");
+    const zh = readFileSync("README.zh-CN.md", "utf-8");
+
+    expect(existsSync("scripts/demo-cli.mjs")).toBe(true);
+    expect(pkg.files).toContain("scripts");
+    expect(pkg.scripts.demo).toBe("npm run build && node scripts/demo-cli.mjs");
+    expect(readme).toContain("Interactive Demo");
+    expect(readme).toContain("npm run demo -- codex --model gpt-5.5");
+    expect(readme).toContain("--prompt");
+    expect(zh).toContain("交互式 Demo");
+    expect(zh).toContain("npm run demo -- codex --model gpt-5.5");
+    expect(zh).toContain("--prompt");
+  });
 });
