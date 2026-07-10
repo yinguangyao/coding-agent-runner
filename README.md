@@ -142,7 +142,7 @@ await runCliAgent({
 
 Provider behavior:
 
-- Codex: sent as structured app-server `skill` input blocks before the user text.
+- Codex: sent as structured app-server `skill` input blocks before the user text and also referenced in `developerInstructions` for compatibility with CLI builds that do not materialize ad-hoc skills automatically.
 - Claude and ACP providers: added to the system prompt as explicit skill references, instructing the provider to read the skill path when relevant.
 
 ## Streaming
@@ -389,6 +389,39 @@ To test a CLI outside `PATH`, pass a command override:
 ```bash
 CAR_OPENCODE_COMMAND=/custom/bin/opencode npm run smoke:opencode
 PI_ACP_BIN=/custom/bin/pi-acp npm run smoke:pi
+```
+
+## Real Feature Smoke Tests
+
+Use these when you want a real, non-mocked check for higher-level runner options:
+
+```bash
+npm run smoke:real
+npm run smoke:real:codex
+npm run smoke:real:claude
+```
+
+`smoke:real` defaults to Codex and Claude Code. It builds the package, starts the real installed CLI, and verifies:
+
+- `systemPrompt` exact-token behavior
+- `skills` behavior through a temporary local `SKILL.md`
+
+The script requires the selected CLIs to be installed, authenticated, and available on `PATH`. You can tune models and providers:
+
+```bash
+npm run smoke:real -- --providers codex,claude --codex-model gpt-5.5 --claude-model sonnet
+npm run smoke:real -- --providers cursor,opencode,pi --skip-missing
+```
+
+To include a real MCP server config in the smoke run:
+
+```bash
+npm run smoke:real:claude -- \
+  --mcp-name docs \
+  --mcp-command npx \
+  --mcp-args-json '["-y","@acme/docs-mcp"]' \
+  --mcp-prompt "Use the docs MCP server and reply with DOCS_OK" \
+  --mcp-expected DOCS_OK
 ```
 
 ## License

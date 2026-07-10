@@ -42,7 +42,7 @@ describe("runAgentTurn", () => {
       },
       threadStartParams: {
         model: "gpt-5.5",
-        developerInstructions: "You are a strict reviewer.",
+        developerInstructions: expect.stringContaining("You are a strict reviewer."),
         config: {
           mcp_servers: {
             docs: {
@@ -58,6 +58,12 @@ describe("runAgentTurn", () => {
         { type: "text", text: "hello", text_elements: [] },
       ],
     }));
+    expect(runCodexTurn.mock.calls[0]?.[0].threadStartParams?.developerInstructions).toContain(
+      "Available skills",
+    );
+    expect(runCodexTurn.mock.calls[0]?.[0].threadStartParams?.developerInstructions).toContain(
+      "code-review: /repo/.agents/skills/code-review",
+    );
   });
 
   it("dispatches claude-code-cli through the native Claude runner", async () => {

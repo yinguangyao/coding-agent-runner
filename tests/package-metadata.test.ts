@@ -108,6 +108,34 @@ describe("package metadata", () => {
     expect(smoke).toContain("--model <id>");
   });
 
+  it("provides real feature smoke tests for installed CLIs", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf-8")) as {
+      files: string[];
+      scripts: Record<string, string>;
+    };
+    const readme = readFileSync("README.md", "utf-8");
+    const zh = readFileSync("README.zh-CN.md", "utf-8");
+    const smoke = readFileSync("scripts/smoke-real-features.mjs", "utf-8");
+
+    expect(existsSync("scripts/smoke-real-features.mjs")).toBe(true);
+    expect(pkg.files).toContain("scripts");
+    expect(pkg.scripts["smoke:real"]).toBe("npm run build && node scripts/smoke-real-features.mjs");
+    expect(pkg.scripts["smoke:real:codex"]).toBe("npm run build && node scripts/smoke-real-features.mjs --providers codex");
+    expect(pkg.scripts["smoke:real:claude"]).toBe("npm run build && node scripts/smoke-real-features.mjs --providers claude");
+    expect(readme).toContain("Real Feature Smoke Tests");
+    expect(readme).toContain("npm run smoke:real");
+    expect(readme).toContain("npm run smoke:real:codex");
+    expect(readme).toContain("npm run smoke:real:claude");
+    expect(zh).toContain("真实 Feature Smoke Test");
+    expect(zh).toContain("npm run smoke:real");
+    expect(zh).toContain("npm run smoke:real:codex");
+    expect(zh).toContain("npm run smoke:real:claude");
+    expect(smoke).toContain("runCliAgent");
+    expect(smoke).toContain("systemPrompt");
+    expect(smoke).toContain("skills");
+    expect(smoke).not.toContain("vi.fn");
+  });
+
   it("provides an interactive real CLI demo", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf-8")) as {
       files: string[];

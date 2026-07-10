@@ -27,6 +27,9 @@
     "smoke:cursor": "npm run build && node scripts/smoke-cli.mjs cursor",
     "smoke:opencode": "npm run build && node scripts/smoke-cli.mjs opencode",
     "smoke:pi": "npm run build && node scripts/smoke-cli.mjs pi",
+    "smoke:real": "npm run build && node scripts/smoke-real-features.mjs",
+    "smoke:real:codex": "npm run build && node scripts/smoke-real-features.mjs --providers codex",
+    "smoke:real:claude": "npm run build && node scripts/smoke-real-features.mjs --providers claude",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

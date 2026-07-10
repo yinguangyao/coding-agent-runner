@@ -142,7 +142,7 @@ await runCliAgent({
 
 不同 provider 的行为：
 
-- Codex：作为 app-server 原生结构化 `skill` input block 发送，放在用户文本之前。
+- Codex：作为 app-server 原生结构化 `skill` input block 发送，放在用户文本之前；同时也会写入 `developerInstructions`，兼容那些不会自动 materialize 临时 skill 的 CLI 版本。
 - Claude 和 ACP provider：追加到 system prompt 中，明确告诉 provider 在相关任务中读取并遵循对应 skill 路径。
 
 ## 流式事件
@@ -389,6 +389,39 @@ npm run smoke:codex -- --model gpt-5.5
 ```bash
 CAR_OPENCODE_COMMAND=/custom/bin/opencode npm run smoke:opencode
 PI_ACP_BIN=/custom/bin/pi-acp npm run smoke:pi
+```
+
+## 真实 Feature Smoke Test
+
+如果想真实验证更高层 runner 参数，而不是 mock，可以运行：
+
+```bash
+npm run smoke:real
+npm run smoke:real:codex
+npm run smoke:real:claude
+```
+
+`smoke:real` 默认跑 Codex 和 Claude Code。它会先 build 包，再启动本机真实 CLI，并验证：
+
+- `systemPrompt` 精确 token 行为
+- `skills` 通过临时本地 `SKILL.md` 的行为
+
+运行前需要所选 CLI 已安装、已登录，并且在 `PATH` 上可用。也可以指定 provider 和模型：
+
+```bash
+npm run smoke:real -- --providers codex,claude --codex-model gpt-5.5 --claude-model sonnet
+npm run smoke:real -- --providers cursor,opencode,pi --skip-missing
+```
+
+如果要把真实 MCP server 配置也放进 smoke：
+
+```bash
+npm run smoke:real:claude -- \
+  --mcp-name docs \
+  --mcp-command npx \
+  --mcp-args-json '["-y","@acme/docs-mcp"]' \
+  --mcp-prompt "Use the docs MCP server and reply with DOCS_OK" \
+  --mcp-expected DOCS_OK
 ```
 
 ## License

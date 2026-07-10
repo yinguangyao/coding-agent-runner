@@ -169,7 +169,7 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
 
 function buildCodexThreadStartParams(opts: RunAgentTurnOptions): RunCodexTurnOptions["threadStartParams"] {
   const model = normalizeOptionalText(opts.model);
-  const developerInstructions = normalizeOptionalText(opts.systemPrompt);
+  const developerInstructions = buildPromptSystemContext(opts.systemPrompt, opts.skills);
   const config = buildCodexMcpConfig(opts.mcpServers);
   if (!model && !developerInstructions && !config) return undefined;
   return {
