@@ -29,6 +29,12 @@ Friendly APIs use short provider ids:
 - `streamCliAgent()`
 - `runCliAgent()`
 
+Top-level runner options include `model`, `systemPrompt`, `mcpServers`, and `skills`. Keep provider-specific mappings covered by tests when changing them:
+
+- Codex maps `mcpServers` to app-server `config.mcp_servers` and sends `skills` as structured skill input blocks.
+- Claude maps `mcpServers` to `--mcp-config`; skill references are appended to the system prompt.
+- ACP providers pass `mcpServers` through session setup; skill references are wrapped into the fallback system prompt.
+
 Lower-level APIs remain exported for advanced callers:
 
 - `runAgentTurn()`

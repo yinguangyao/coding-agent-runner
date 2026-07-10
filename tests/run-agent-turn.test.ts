@@ -16,6 +16,13 @@ describe("runAgentTurn", () => {
       cwd: "/repo",
       model: "gpt-5.5",
       systemPrompt: "You are a strict reviewer.",
+      mcpServers: [{
+        name: "docs",
+        command: "node",
+        args: ["/repo/tools/docs-mcp.js"],
+        env: { DOCS_TOKEN: "token", EMPTY: undefined },
+      }],
+      skills: [{ name: "code-review", path: "/repo/.agents/skills/code-review" }],
       prompt: "hello",
       deps: { runCodexTurn },
     });
@@ -36,7 +43,20 @@ describe("runAgentTurn", () => {
       threadStartParams: {
         model: "gpt-5.5",
         developerInstructions: "You are a strict reviewer.",
+        config: {
+          mcp_servers: {
+            docs: {
+              command: "node",
+              args: ["/repo/tools/docs-mcp.js"],
+              env: { DOCS_TOKEN: "token" },
+            },
+          },
+        },
       },
+      input: [
+        { type: "skill", name: "code-review", path: "/repo/.agents/skills/code-review" },
+        { type: "text", text: "hello", text_elements: [] },
+      ],
     }));
   });
 
@@ -54,6 +74,13 @@ describe("runAgentTurn", () => {
       cwd: "/repo",
       model: "claude-sonnet-4-5",
       systemPrompt: "You are a strict reviewer.",
+      mcpServers: [{
+        name: "docs",
+        command: "node",
+        args: ["/repo/tools/docs-mcp.js"],
+        env: { DOCS_TOKEN: "token", EMPTY: undefined },
+      }],
+      skills: [{ name: "code-review", path: "/repo/.agents/skills/code-review" }],
       prompt: "hello",
       deps: { runClaudeNative },
     });
@@ -68,8 +95,20 @@ describe("runAgentTurn", () => {
       prompt: "hello",
       cwd: "/repo",
       model: "claude-sonnet-4-5",
-      appendSystemPrompt: "You are a strict reviewer.",
+      appendSystemPrompt: expect.stringContaining("You are a strict reviewer."),
+      mcpServers: [{
+        name: "docs",
+        command: "node",
+        args: ["/repo/tools/docs-mcp.js"],
+        env: { DOCS_TOKEN: "token" },
+      }],
     }));
+    expect(runClaudeNative.mock.calls[0]?.[0].appendSystemPrompt).toContain(
+      "Available skills",
+    );
+    expect(runClaudeNative.mock.calls[0]?.[0].appendSystemPrompt).toContain(
+      "code-review: /repo/.agents/skills/code-review",
+    );
   });
 
   it("dispatches ACP providers through AcpConnection", async () => {
@@ -81,6 +120,12 @@ describe("runAgentTurn", () => {
     const result = await runAgentTurn({
       provider: "cursor-cli",
       cwd: "/repo",
+      mcpServers: [{
+        name: "docs",
+        command: "node",
+        args: ["/repo/tools/docs-mcp.js"],
+        env: { DOCS_TOKEN: "token", EMPTY: undefined },
+      }],
       prompt: "hello",
       deps: { spawnAcpConnection },
     });
@@ -93,6 +138,14 @@ describe("runAgentTurn", () => {
     expect(spawnAcpConnection).toHaveBeenCalledWith(expect.objectContaining({
       spawnParams: { label: "cursor-cli", command: "cursor-agent", args: ["acp"] },
       cwd: "/repo",
+    }));
+    expect(ensureSession).toHaveBeenCalledWith(expect.objectContaining({
+      mcpServers: [{
+        name: "docs",
+        command: "node",
+        args: ["/repo/tools/docs-mcp.js"],
+        env: [{ name: "DOCS_TOKEN", value: "token" }],
+      }],
     }));
     expect(prompt).toHaveBeenCalledWith(expect.objectContaining({
       acpSessionId: "acp-session",
@@ -111,21 +164,17 @@ describe("runAgentTurn", () => {
       provider: "cursor-cli",
       cwd: "/repo",
       systemPrompt: "You are a strict reviewer.",
+      skills: [{ name: "code-review", path: "/repo/.agents/skills/code-review" }],
       prompt: "hello",
       deps: { spawnAcpConnection },
     });
 
-    expect(prompt).toHaveBeenCalledWith(expect.objectContaining({
-      prompt: [
-        "<system>",
-        "You are a strict reviewer.",
-        "</system>",
-        "",
-        "<user>",
-        "hello",
-        "</user>",
-      ].join("\n"),
-    }));
+    const acpPrompt = prompt.mock.calls[0]?.[0].prompt;
+    expect(acpPrompt).toContain("<system>");
+    expect(acpPrompt).toContain("You are a strict reviewer.");
+    expect(acpPrompt).toContain("Available skills");
+    expect(acpPrompt).toContain("code-review: /repo/.agents/skills/code-review");
+    expect(acpPrompt).toContain("<user>\nhello\n</user>");
   });
 
   it("does not prompt an ACP provider when the signal aborts during session setup", async () => {

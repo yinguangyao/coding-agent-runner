@@ -7,6 +7,8 @@ import type {
   AgentStreamEvent,
   AgentTurnResult,
   AgentTurnStatus,
+  CodingAgentMcpServer,
+  CodingAgentSkill,
   RunnerLogger,
   SpawnParams,
   TimingHandler,
@@ -41,6 +43,8 @@ export interface CodingAgentRunnerOptions {
   cwd: string;
   model?: string | null;
   systemPrompt?: string | null;
+  mcpServers?: CodingAgentMcpServer[];
+  skills?: CodingAgentSkill[];
   sessionId?: string | null;
   env?: Record<string, string | undefined>;
   spawn?: Partial<Pick<SpawnParams, "command" | "args" | "env" | "wrapper">>;
@@ -156,6 +160,8 @@ function streamCliAgentInternal(
     sessionId: options.sessionId ?? null,
     model: options.model,
     systemPrompt: options.systemPrompt,
+    mcpServers: options.mcpServers,
+    skills: options.skills,
     env: options.env,
     spawn: options.spawn,
     onTiming: options.onTiming,

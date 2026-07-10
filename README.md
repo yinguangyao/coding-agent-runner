@@ -100,6 +100,51 @@ Provider behavior:
 - Claude: mapped to Claude Code `--append-system-prompt`.
 - ACP providers (`cursor`, `opencode`, and `pi`): wrapped into the prompt as explicit `<system>` and `<user>` blocks because ACP does not currently define a portable system-prompt field.
 
+## MCP Servers
+
+Pass local stdio MCP servers with `mcpServers` when a turn needs extra tools or context:
+
+```ts
+await runCliAgent({
+  provider: "claude",
+  cwd: process.cwd(),
+  model: "sonnet",
+  mcpServers: [{
+    name: "docs",
+    command: "npx",
+    args: ["-y", "@acme/docs-mcp"],
+    env: { DOCS_TOKEN: process.env.DOCS_TOKEN },
+  }],
+  prompt: "Use the docs MCP server and review this module.",
+});
+```
+
+Provider behavior:
+
+- Codex: mapped to app-server `config.mcp_servers`.
+- Claude: written to a temporary Claude Code `--mcp-config` file.
+- ACP providers (`cursor`, `opencode`, and `pi`): passed to ACP session setup as stdio MCP servers.
+
+`undefined` environment values are dropped before provider config is created.
+
+## Skills
+
+Pass local skill references with `skills`:
+
+```ts
+await runCliAgent({
+  provider: "codex",
+  cwd: process.cwd(),
+  skills: [{ name: "code-review", path: "/path/to/skills/code-review" }],
+  prompt: "Review the staged diff.",
+});
+```
+
+Provider behavior:
+
+- Codex: sent as structured app-server `skill` input blocks before the user text.
+- Claude and ACP providers: added to the system prompt as explicit skill references, instructing the provider to read the skill path when relevant.
+
 ## Streaming
 
 ```ts

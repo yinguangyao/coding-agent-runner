@@ -51,6 +51,28 @@ export interface SpawnParams {
   wrapper?: ProcessWrapper;
 }
 
+/** Local stdio MCP server made available to a provider turn. */
+export interface CodingAgentMcpServer {
+  /** Human-readable server name. */
+  name: string;
+  /** MCP server executable. */
+  command: string;
+  /** Arguments passed to the MCP server executable. */
+  args?: string[];
+  /** Environment variables passed to the MCP server executable. */
+  env?: Record<string, string | undefined>;
+}
+
+/** Local skill reference made available to a provider turn. */
+export interface CodingAgentSkill {
+  /** Skill name shown to the provider. */
+  name: string;
+  /** Path to the skill directory or skill file. */
+  path: string;
+  /** Optional short human-readable description. */
+  description?: string;
+}
+
 /** Normalized event emitted by all provider transports. */
 export type AgentStreamEvent =
   | { type: "message_delta"; text: string }

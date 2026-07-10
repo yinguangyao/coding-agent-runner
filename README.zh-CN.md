@@ -100,6 +100,51 @@ await runCliAgent({
 - Claude：映射到 Claude Code 的 `--append-system-prompt`。
 - ACP provider（`cursor`、`opencode`、`pi`）：由于 ACP 当前没有统一的 system prompt 字段，会包装成显式 `<system>` 和 `<user>` prompt block。
 
+## MCP Server
+
+当某一轮需要额外工具或上下文时，可以用 `mcpServers` 传入本地 stdio MCP server：
+
+```ts
+await runCliAgent({
+  provider: "claude",
+  cwd: process.cwd(),
+  model: "sonnet",
+  mcpServers: [{
+    name: "docs",
+    command: "npx",
+    args: ["-y", "@acme/docs-mcp"],
+    env: { DOCS_TOKEN: process.env.DOCS_TOKEN },
+  }],
+  prompt: "Use the docs MCP server and review this module.",
+});
+```
+
+不同 provider 的行为：
+
+- Codex：映射到 app-server 的 `config.mcp_servers`。
+- Claude：写入临时 Claude Code `--mcp-config` 文件。
+- ACP provider（`cursor`、`opencode`、`pi`）：作为 stdio MCP server 传给 ACP session setup。
+
+生成 provider 配置前，`env` 中值为 `undefined` 的环境变量会被丢弃。
+
+## Skills
+
+可以用 `skills` 传入本地 skill 引用：
+
+```ts
+await runCliAgent({
+  provider: "codex",
+  cwd: process.cwd(),
+  skills: [{ name: "code-review", path: "/path/to/skills/code-review" }],
+  prompt: "Review the staged diff.",
+});
+```
+
+不同 provider 的行为：
+
+- Codex：作为 app-server 原生结构化 `skill` input block 发送，放在用户文本之前。
+- Claude 和 ACP provider：追加到 system prompt 中，明确告诉 provider 在相关任务中读取并遵循对应 skill 路径。
+
 ## 流式事件
 
 ```ts

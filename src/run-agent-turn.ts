@@ -1,5 +1,5 @@
 /** High-level one-shot runner across supported coding-agent providers. */
-import { AcpConnection, type AcpSpawnParams, type PromptOutcome, type SessionUpdateHandler } from "./acp.js";
+import { AcpConnection, type AcpMcpServer, type AcpSpawnParams, type PromptOutcome, type SessionUpdateHandler } from "./acp.js";
 import { buildDefaultSpawn, getProviderConfig } from "./adapters.js";
 import { runClaudeNative, type ClaudeNativeParams, type ClaudeNativeResult } from "./claude.js";
 import { runCodexTurn, type CodexTurnOutcome, type RunCodexTurnOptions } from "./codex.js";
@@ -8,6 +8,8 @@ import type {
   AgentStreamEvent,
   AgentTurnResult,
   AgentTurnStatus,
+  CodingAgentMcpServer,
+  CodingAgentSkill,
   CodingCliProvider,
   RunnerLogger,
   SpawnParams,
@@ -24,7 +26,12 @@ export interface RunAgentTurnDeps {
     logger?: RunnerLogger;
     env?: Record<string, string | undefined>;
   }) => Promise<{
-    ensureSession: (params: { workbenchSessionId: string; cwd: string; logger?: RunnerLogger }) => Promise<string>;
+    ensureSession: (params: {
+      workbenchSessionId: string;
+      cwd: string;
+      mcpServers?: AcpMcpServer[];
+      logger?: RunnerLogger;
+    }) => Promise<string>;
     prompt: (params: {
       acpSessionId: string;
       prompt: string;
@@ -45,6 +52,8 @@ export interface RunAgentTurnOptions {
   sessionId?: string | null;
   model?: string | null;
   systemPrompt?: string | null;
+  mcpServers?: CodingAgentMcpServer[];
+  skills?: CodingAgentSkill[];
   env?: Record<string, string | undefined>;
   spawn?: Partial<Pick<SpawnParams, "command" | "args" | "env" | "wrapper">>;
   onEvent?: (event: AgentStreamEvent) => void;
@@ -73,6 +82,7 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
       onTiming: opts.onTiming,
       logger: opts.logger,
       threadStartParams: buildCodexThreadStartParams(opts),
+      input: buildCodexInput(opts.prompt, opts.skills),
     });
     return {
       provider: opts.provider,
@@ -90,11 +100,12 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
       prompt: opts.prompt,
       cwd: opts.cwd,
       model: opts.model,
-      appendSystemPrompt: normalizeOptionalText(opts.systemPrompt) ?? undefined,
+      appendSystemPrompt: buildPromptSystemContext(opts.systemPrompt, opts.skills) ?? undefined,
       resumeSessionId: opts.sessionId ?? undefined,
       signal,
       env: spawn.env,
       wrapper: spawn.wrapper,
+      mcpServers: toClaudeMcpServers(opts.mcpServers),
       onEvent: opts.onEvent,
       onTiming: opts.onTiming,
     });
@@ -119,6 +130,7 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
     const acpSessionId = await conn.ensureSession({
       workbenchSessionId: opts.sessionId ?? "default",
       cwd: opts.cwd,
+      mcpServers: toAcpMcpServers(opts.mcpServers),
       logger: opts.logger,
     });
     if (signal.aborted) {
@@ -132,7 +144,7 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
     }
     const outcome = await conn.prompt({
       acpSessionId,
-      prompt: applySystemPromptFallback(opts.prompt, opts.systemPrompt),
+      prompt: applySystemPromptFallback(opts.prompt, buildPromptSystemContext(opts.systemPrompt, opts.skills)),
       signal,
       logger: opts.logger,
       onUpdate: (update) => {
@@ -158,11 +170,40 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
 function buildCodexThreadStartParams(opts: RunAgentTurnOptions): RunCodexTurnOptions["threadStartParams"] {
   const model = normalizeOptionalText(opts.model);
   const developerInstructions = normalizeOptionalText(opts.systemPrompt);
-  if (!model && !developerInstructions) return undefined;
+  const config = buildCodexMcpConfig(opts.mcpServers);
+  if (!model && !developerInstructions && !config) return undefined;
   return {
     ...(model ? { model } : {}),
     ...(developerInstructions ? { developerInstructions } : {}),
+    ...(config ? { config } : {}),
   };
+}
+
+function buildCodexMcpConfig(mcpServers: CodingAgentMcpServer[] | undefined): Record<string, unknown> | null {
+  const servers = normalizeMcpServers(mcpServers);
+  if (servers.length === 0) return null;
+  return {
+    mcp_servers: Object.fromEntries(servers.map((server) => [
+      server.name,
+      {
+        command: server.command,
+        args: server.args,
+        ...(server.env ? { env: server.env } : {}),
+      },
+    ])),
+  };
+}
+
+function buildCodexInput(
+  prompt: string,
+  skills: CodingAgentSkill[] | undefined,
+): RunCodexTurnOptions["input"] | undefined {
+  const normalized = normalizeSkills(skills);
+  if (normalized.length === 0) return undefined;
+  return [
+    ...normalized.map((skill) => ({ type: "skill" as const, name: skill.name, path: skill.path })),
+    { type: "text" as const, text: prompt, text_elements: [] as [] },
+  ];
 }
 
 function applySystemPromptFallback(prompt: string, systemPrompt?: string | null): string {
@@ -177,6 +218,81 @@ function applySystemPromptFallback(prompt: string, systemPrompt?: string | null)
     prompt,
     "</user>",
   ].join("\n");
+}
+
+function buildPromptSystemContext(
+  systemPrompt: string | null | undefined,
+  skills: CodingAgentSkill[] | undefined,
+): string | null {
+  return joinPromptSections(normalizeOptionalText(systemPrompt), buildSkillInstructions(skills));
+}
+
+function buildSkillInstructions(skills: CodingAgentSkill[] | undefined): string | null {
+  const normalized = normalizeSkills(skills);
+  if (normalized.length === 0) return null;
+  return [
+    "Available skills:",
+    ...normalized.map((skill) => {
+      const description = normalizeOptionalText(skill.description);
+      return `- ${skill.name}: ${description ? `${description} ` : ""}${skill.path}`;
+    }),
+    "When a task matches a skill, read the skill path before acting and follow it for that turn.",
+  ].join("\n");
+}
+
+function joinPromptSections(...sections: Array<string | null | undefined>): string | null {
+  const normalized = sections.flatMap((section) => {
+    const text = normalizeOptionalText(section);
+    return text ? [text] : [];
+  });
+  return normalized.length > 0 ? normalized.join("\n\n") : null;
+}
+
+function toClaudeMcpServers(mcpServers: CodingAgentMcpServer[] | undefined): ClaudeNativeParams["mcpServers"] {
+  const servers = normalizeMcpServers(mcpServers);
+  return servers.length > 0 ? servers : undefined;
+}
+
+function toAcpMcpServers(mcpServers: CodingAgentMcpServer[] | undefined): AcpMcpServer[] | undefined {
+  const servers = normalizeMcpServers(mcpServers);
+  if (servers.length === 0) return undefined;
+  return servers.map((server) => ({
+    name: server.name,
+    command: server.command,
+    args: server.args,
+    env: Object.entries(server.env ?? {}).map(([name, value]) => ({ name, value })),
+  }));
+}
+
+function normalizeMcpServers(mcpServers: CodingAgentMcpServer[] | undefined): Array<{
+  name: string;
+  command: string;
+  args: string[];
+  env?: Record<string, string>;
+}> {
+  return (mcpServers ?? []).map((server) => ({
+    name: server.name.trim(),
+    command: server.command.trim(),
+    args: [...(server.args ?? [])],
+    env: normalizeEnv(server.env),
+  })).filter((server) => server.name.length > 0 && server.command.length > 0);
+}
+
+function normalizeEnv(env: Record<string, string | undefined> | undefined): Record<string, string> | undefined {
+  if (!env) return undefined;
+  const entries = Object.entries(env).filter((entry): entry is [string, string] => (
+    entry[0].trim().length > 0 && typeof entry[1] === "string"
+  ));
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function normalizeSkills(skills: CodingAgentSkill[] | undefined): CodingAgentSkill[] {
+  return (skills ?? []).flatMap((skill) => {
+    const name = normalizeOptionalText(skill.name);
+    const path = normalizeOptionalText(skill.path);
+    if (!name || !path) return [];
+    return [{ name, path, description: normalizeOptionalText(skill.description) ?? undefined }];
+  });
 }
 
 function normalizeOptionalText(value: string | null | undefined): string | null {

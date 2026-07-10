@@ -6,6 +6,9 @@ import type { ProcessWrapper, RunnerLogger } from "./types.js";
 
 type AcpSessionUpdate = acp.SessionNotification["update"];
 
+/** ACP MCP server configuration accepted during session setup. */
+export type AcpMcpServer = acp.McpServer;
+
 /** ACP adapter spawn params. */
 export interface AcpSpawnParams {
   label: string;

@@ -23,6 +23,8 @@ describe("friendly public runner api", () => {
       cwd: "/repo",
       model: "gpt-5.5",
       systemPrompt: "You are a strict reviewer.",
+      mcpServers: [{ name: "docs", command: "node", args: ["/repo/tools/docs-mcp.js"] }],
+      skills: [{ name: "code-review", path: "/repo/.agents/skills/code-review" }],
       prompt: "hi",
       deps: { runAgentTurn },
     })).resolves.toMatchObject({
@@ -34,6 +36,8 @@ describe("friendly public runner api", () => {
     expect(runAgentTurn).toHaveBeenCalledWith(expect.objectContaining({
       model: "gpt-5.5",
       systemPrompt: "You are a strict reviewer.",
+      mcpServers: [{ name: "docs", command: "node", args: ["/repo/tools/docs-mcp.js"] }],
+      skills: [{ name: "code-review", path: "/repo/.agents/skills/code-review" }],
     }));
   });
 
