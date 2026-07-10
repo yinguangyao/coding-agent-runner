@@ -21,7 +21,9 @@ import {
 /** Event union emitted by the friendly public streaming API. */
 export type CodingAgentEvent =
   | { type: "text_delta"; text: string }
+  | { type: "thinking_start"; id: string }
   | { type: "thinking_delta"; text: string }
+  | { type: "thinking_end"; id: string }
   | { type: "tool_start"; id: string; name: string; input?: unknown }
   | { type: "tool_update"; id: string; name: string; input?: unknown; output?: string }
   | { type: "tool_end"; id: string; name: string; output: string; isError: boolean }
@@ -187,8 +189,12 @@ function mapLowLevelEvent(event: AgentStreamEvent): CodingAgentEvent[] {
   switch (event.type) {
     case "message_delta":
       return [{ type: "text_delta", text: event.text }];
+    case "thinking_start":
+      return [{ type: "thinking_start", id: event.id }];
     case "thinking_delta":
       return [{ type: "thinking_delta", text: event.text }];
+    case "thinking_end":
+      return [{ type: "thinking_end", id: event.id }];
     case "tool_start":
       return [{ type: "tool_start", id: event.id, name: event.name, input: event.input }];
     case "tool_update":

@@ -54,7 +54,9 @@ export interface SpawnParams {
 /** Normalized event emitted by all provider transports. */
 export type AgentStreamEvent =
   | { type: "message_delta"; text: string }
+  | { type: "thinking_start"; id: string }
   | { type: "thinking_delta"; text: string }
+  | { type: "thinking_end"; id: string }
   | { type: "tool_start"; id: string; name: string; input?: unknown }
   | { type: "tool_update"; id: string; name: string; input?: unknown; output?: string }
   | { type: "tool_end"; id: string; name: string; output: string; isError: boolean }

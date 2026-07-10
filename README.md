@@ -204,7 +204,9 @@ The friendly streaming API emits:
 ```ts
 type CodingAgentEvent =
   | { type: "text_delta"; text: string }
+  | { type: "thinking_start"; id: string }
   | { type: "thinking_delta"; text: string }
+  | { type: "thinking_end"; id: string }
   | { type: "tool_start"; id: string; name: string; input?: unknown }
   | { type: "tool_update"; id: string; name: string; input?: unknown; output?: string }
   | { type: "tool_end"; id: string; name: string; output: string; isError: boolean }
@@ -264,7 +266,9 @@ npm run demo -- codex --model gpt-5.5
 npm run demo -- claude --model sonnet
 ```
 
-Inside the demo, type a prompt and press Enter. It prints streamed answer text plus process events such as `thinking_delta`, `tool_start`, `tool_update`, `tool_end`, `done`, `sessionId`, and elapsed time. The same runner instance is reused, so follow-up prompts continue the same session when the provider supports it.
+Inside the demo, type a prompt and press Enter. It prints streamed answer text plus process events such as `thinking_start`, `thinking_delta`, `thinking_end`, `tool_start`, `tool_update`, `tool_end`, `done`, `sessionId`, and elapsed time. The same runner instance is reused, so follow-up prompts continue the same session when the provider supports it.
+
+Codex often emits `thinking_start` and `thinking_end` lifecycle events without exposing private reasoning text; the demo shows those lifecycle markers instead of inventing hidden chain-of-thought content.
 
 To pass one input and exit:
 

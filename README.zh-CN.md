@@ -204,7 +204,9 @@ wrapper 调用形式为：
 ```ts
 type CodingAgentEvent =
   | { type: "text_delta"; text: string }
+  | { type: "thinking_start"; id: string }
   | { type: "thinking_delta"; text: string }
+  | { type: "thinking_end"; id: string }
   | { type: "tool_start"; id: string; name: string; input?: unknown }
   | { type: "tool_update"; id: string; name: string; input?: unknown; output?: string }
   | { type: "tool_end"; id: string; name: string; output: string; isError: boolean }
@@ -264,7 +266,9 @@ npm run demo -- codex --model gpt-5.5
 npm run demo -- claude --model sonnet
 ```
 
-进入 demo 后，直接输入 prompt 并回车。它会打印流式回答文本，也会打印 `thinking_delta`、`tool_start`、`tool_update`、`tool_end`、`done`、`sessionId`、耗时等过程事件。同一个 runner 实例会被复用，因此 provider 支持时，后续输入会延续同一个 session。
+进入 demo 后，直接输入 prompt 并回车。它会打印流式回答文本，也会打印 `thinking_start`、`thinking_delta`、`thinking_end`、`tool_start`、`tool_update`、`tool_end`、`done`、`sessionId`、耗时等过程事件。同一个 runner 实例会被复用，因此 provider 支持时，后续输入会延续同一个 session。
+
+Codex 经常只暴露 `thinking_start` 和 `thinking_end` 这类生命周期事件，不会暴露私有思考文本；demo 会展示这些生命周期标记，不会伪造隐藏的 chain-of-thought 内容。
 
 如果只想传一次输入并退出：
 

@@ -38,7 +38,9 @@ describe("friendly public runner api", () => {
   it("streamCliAgent maps low-level event names to public event names", async () => {
     const runAgentTurn = vi.fn(async ({ onEvent }: any) => {
       onEvent?.({ type: "message_delta", text: "hello" });
+      onEvent?.({ type: "thinking_start", id: "reasoning-1" });
       onEvent?.({ type: "thinking_delta", text: "thinking" });
+      onEvent?.({ type: "thinking_end", id: "reasoning-1" });
       onEvent?.({ type: "tool_start", id: "tool-1", name: "shell", input: { command: "npm test" } });
       return {
         provider: "codex-cli",
@@ -61,7 +63,9 @@ describe("friendly public runner api", () => {
 
     expect(events).toEqual([
       { type: "text_delta", text: "hello" },
+      { type: "thinking_start", id: "reasoning-1" },
       { type: "thinking_delta", text: "thinking" },
+      { type: "thinking_end", id: "reasoning-1" },
       { type: "tool_start", id: "tool-1", name: "shell", input: { command: "npm test" } },
       { type: "done", output: "hello", sessionId: "thread-1", stopReason: "completed" },
     ]);

@@ -185,8 +185,14 @@ function renderEvent(event, options) {
     case "text_delta":
       process.stdout.write(event.text);
       break;
+    case "thinking_start":
+      console.log(`\n[thinking:start] id=${event.id}`);
+      break;
     case "thinking_delta":
       console.log(`\n[thinking] ${previewText(event.text)}`);
+      break;
+    case "thinking_end":
+      console.log(`\n[thinking:end] id=${event.id}`);
       break;
     case "tool_start":
       console.log(`\n[tool:start] ${event.name} id=${event.id} input=${previewValue(event.input)}`);
@@ -233,7 +239,7 @@ function printHeader(options) {
   console.log(`provider=${options.provider}`);
   console.log(`cwd=${options.cwd}`);
   if (options.model) console.log(`model=${options.model}`);
-  console.log("events=text_delta/thinking_delta/tool_start/tool_update/tool_end/done/error");
+  console.log("events=text_delta/thinking_start/thinking_delta/thinking_end/tool_start/tool_update/tool_end/done/error");
 }
 
 function printInteractiveHelp() {

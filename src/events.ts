@@ -99,6 +99,9 @@ function mapCodexNotification(method: string, params: unknown): AgentStreamEvent
     if (item.type === "fileChange") {
       return [{ type: "tool_start", id: readString(item.id), name: "edit", input: { path: readString(item.path) } }];
     }
+    if (item.type === "reasoning") {
+      return [{ type: "thinking_start", id: readString(item.id) }];
+    }
     if (item.type === "agentMessage") {
       const text = readString(item.text);
       return text ? [{ type: "message_delta", text }] : [];
@@ -121,6 +124,9 @@ function mapCodexNotification(method: string, params: unknown): AgentStreamEvent
     if (!item) return [];
     if (item.type === "agentMessage") {
       return [];
+    }
+    if (item.type === "reasoning") {
+      return [{ type: "thinking_end", id: readString(item.id) }];
     }
     if (item.type === "commandExecution") {
       return [{

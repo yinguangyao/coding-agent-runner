@@ -82,4 +82,24 @@ describe("stream event mapping", () => {
       isError: true,
     }]);
   });
+
+  it("maps Codex reasoning lifecycle to thinking lifecycle events", () => {
+    expect(mapStreamEventToAgentEvents("item/started", {
+      item: {
+        id: "reasoning-1",
+        type: "reasoning",
+        summary: [],
+        content: [],
+      },
+    })).toEqual([{ type: "thinking_start", id: "reasoning-1" }]);
+
+    expect(mapStreamEventToAgentEvents("item/completed", {
+      item: {
+        id: "reasoning-1",
+        type: "reasoning",
+        summary: [],
+        content: [],
+      },
+    })).toEqual([{ type: "thinking_end", id: "reasoning-1" }]);
+  });
 });
