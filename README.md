@@ -56,7 +56,7 @@ import { runCliAgent } from "coding-agent-runner";
 const result = await runCliAgent({
   provider: "codex",
   cwd: process.cwd(),
-  model: "gpt-5",
+  model: "gpt-5.5",
   prompt: "Inspect this repository and summarize the test command.",
 });
 
@@ -279,7 +279,7 @@ To run with an explicit model for Codex or Claude:
 
 ```bash
 npm run smoke:claude -- --model sonnet
-npm run smoke:codex -- --model gpt-5
+npm run smoke:codex -- --model gpt-5.5
 ```
 
 To test a CLI outside `PATH`, pass a command override:

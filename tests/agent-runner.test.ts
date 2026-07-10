@@ -21,7 +21,7 @@ describe("friendly public runner api", () => {
     await expect(runCliAgent({
       provider: "codex",
       cwd: "/repo",
-      model: "gpt-5",
+      model: "gpt-5.5",
       prompt: "hi",
       deps: { runAgentTurn },
     })).resolves.toMatchObject({
@@ -31,7 +31,7 @@ describe("friendly public runner api", () => {
       sessionId: "thread-1",
     });
     expect(runAgentTurn).toHaveBeenCalledWith(expect.objectContaining({
-      model: "gpt-5",
+      model: "gpt-5.5",
     }));
   });
 

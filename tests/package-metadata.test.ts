@@ -44,11 +44,11 @@ describe("package metadata", () => {
 
     expect(readme).toContain("ACP-style local agent interoperability");
     expect(readme).toContain("friendlier application API");
-    expect(readme).toContain("model: \"gpt-5\"");
+    expect(readme).toContain("model: \"gpt-5.5\"");
     expect(readme).toContain("Model Selection");
     expect(zh).toContain("对标 ACP");
     expect(zh).toContain("更友好的应用层 API");
-    expect(zh).toContain("model: \"gpt-5\"");
+    expect(zh).toContain("model: \"gpt-5.5\"");
     expect(zh).toContain("模型选择");
     expect(readme).toContain("runCliAgent");
     expect(readme).toContain("streamCliAgent");

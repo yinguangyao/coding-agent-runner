@@ -14,7 +14,7 @@ describe("runAgentTurn", () => {
     const result = await runAgentTurn({
       provider: "codex-cli",
       cwd: "/repo",
-      model: "gpt-5",
+      model: "gpt-5.5",
       prompt: "hello",
       deps: { runCodexTurn },
     });
@@ -32,7 +32,7 @@ describe("runAgentTurn", () => {
         args: ["app-server", "--listen", "stdio://"],
         cwd: "/repo",
       },
-      threadStartParams: { model: "gpt-5" },
+      threadStartParams: { model: "gpt-5.5" },
     }));
   });
 

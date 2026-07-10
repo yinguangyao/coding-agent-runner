@@ -56,7 +56,7 @@ import { runCliAgent } from "coding-agent-runner";
 const result = await runCliAgent({
   provider: "codex",
   cwd: process.cwd(),
-  model: "gpt-5",
+  model: "gpt-5.5",
   prompt: "Inspect this repository and summarize the test command.",
 });
 
@@ -279,7 +279,7 @@ npm run smoke:claude -- --stream-only
 
 ```bash
 npm run smoke:claude -- --model sonnet
-npm run smoke:codex -- --model gpt-5
+npm run smoke:codex -- --model gpt-5.5
 ```
 
 如果 CLI 不在 `PATH` 上，可以传命令覆盖：
