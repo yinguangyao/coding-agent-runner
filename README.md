@@ -80,6 +80,26 @@ await runCliAgent({
 
 `model` is passed directly to Codex thread startup and Claude Code's `--model` flag. ACP providers (`cursor`, `opencode`, and `pi`) expose model switching inconsistently today; when a provider supports a model flag or env var, pass it through `spawn.args` or `spawn.env`.
 
+## System Prompt
+
+Pass `systemPrompt` on the top-level runner options:
+
+```ts
+await runCliAgent({
+  provider: "codex",
+  cwd: process.cwd(),
+  model: "gpt-5.5",
+  systemPrompt: "You are a concise senior TypeScript reviewer.",
+  prompt: "Review this repository.",
+});
+```
+
+Provider behavior:
+
+- Codex: mapped to app-server `developerInstructions`.
+- Claude: mapped to Claude Code `--append-system-prompt`.
+- ACP providers (`cursor`, `opencode`, and `pi`): wrapped into the prompt as explicit `<system>` and `<user>` blocks because ACP does not currently define a portable system-prompt field.
+
 ## Streaming
 
 ```ts
@@ -264,6 +284,7 @@ Use the demo when you want to type real prompts and watch normalized runner even
 ```bash
 npm run demo -- codex --model gpt-5.5
 npm run demo -- claude --model sonnet
+npm run demo -- codex --model gpt-5.5 --system-prompt "You are concise"
 ```
 
 Inside the demo, type a prompt and press Enter. It prints streamed answer text plus process events such as `thinking_start`, `thinking_delta`, `thinking_end`, `tool_start`, `tool_update`, `tool_end`, `done`, `sessionId`, and elapsed time. The same runner instance is reused, so follow-up prompts continue the same session when the provider supports it.

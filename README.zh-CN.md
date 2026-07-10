@@ -80,6 +80,26 @@ await runCliAgent({
 
 `model` 会直接传给 Codex 的 thread startup，以及 Claude Code 的 `--model` 参数。ACP provider（`cursor`、`opencode`、`pi`）当前对模型切换的支持不完全一致；如果某个 provider 支持模型 flag 或环境变量，可以通过 `spawn.args` 或 `spawn.env` 透传。
 
+## System Prompt
+
+在顶层 runner 参数上传 `systemPrompt`：
+
+```ts
+await runCliAgent({
+  provider: "codex",
+  cwd: process.cwd(),
+  model: "gpt-5.5",
+  systemPrompt: "You are a concise senior TypeScript reviewer.",
+  prompt: "Review this repository.",
+});
+```
+
+不同 provider 的行为：
+
+- Codex：映射到 app-server 的 `developerInstructions`。
+- Claude：映射到 Claude Code 的 `--append-system-prompt`。
+- ACP provider（`cursor`、`opencode`、`pi`）：由于 ACP 当前没有统一的 system prompt 字段，会包装成显式 `<system>` 和 `<user>` prompt block。
+
 ## 流式事件
 
 ```ts
@@ -264,6 +284,7 @@ npm pack --dry-run
 ```bash
 npm run demo -- codex --model gpt-5.5
 npm run demo -- claude --model sonnet
+npm run demo -- codex --model gpt-5.5 --system-prompt "You are concise"
 ```
 
 进入 demo 后，直接输入 prompt 并回车。它会打印流式回答文本，也会打印 `thinking_start`、`thinking_delta`、`thinking_end`、`tool_start`、`tool_update`、`tool_end`、`done`、`sessionId`、耗时等过程事件。同一个 runner 实例会被复用，因此 provider 支持时，后续输入会延续同一个 session。

@@ -46,10 +46,14 @@ describe("package metadata", () => {
     expect(readme).toContain("friendlier application API");
     expect(readme).toContain("model: \"gpt-5.5\"");
     expect(readme).toContain("Model Selection");
+    expect(readme).toContain("System Prompt");
+    expect(readme).toContain("systemPrompt");
     expect(zh).toContain("对标 ACP");
     expect(zh).toContain("更友好的应用层 API");
     expect(zh).toContain("model: \"gpt-5.5\"");
     expect(zh).toContain("模型选择");
+    expect(zh).toContain("System Prompt");
+    expect(zh).toContain("systemPrompt");
     expect(readme).toContain("runCliAgent");
     expect(readme).toContain("streamCliAgent");
     expect(readme).toContain("createCodingAgentRunner");
@@ -110,8 +114,10 @@ describe("package metadata", () => {
     expect(readme).toContain("Interactive Demo");
     expect(readme).toContain("npm run demo -- codex --model gpt-5.5");
     expect(readme).toContain("--prompt");
+    expect(readme).toContain("--system-prompt");
     expect(zh).toContain("交互式 Demo");
     expect(zh).toContain("npm run demo -- codex --model gpt-5.5");
     expect(zh).toContain("--prompt");
+    expect(zh).toContain("--system-prompt");
   });
 });

@@ -40,6 +40,7 @@ export interface CodingAgentRunnerOptions {
   provider: AnyCodingProvider;
   cwd: string;
   model?: string | null;
+  systemPrompt?: string | null;
   sessionId?: string | null;
   env?: Record<string, string | undefined>;
   spawn?: Partial<Pick<SpawnParams, "command" | "args" | "env" | "wrapper">>;
@@ -154,6 +155,7 @@ function streamCliAgentInternal(
     signal: options.signal,
     sessionId: options.sessionId ?? null,
     model: options.model,
+    systemPrompt: options.systemPrompt,
     env: options.env,
     spawn: options.spawn,
     onTiming: options.onTiming,

@@ -26,6 +26,7 @@ async function main() {
     provider: options.provider,
     cwd: options.cwd,
     model: options.model,
+    systemPrompt: options.systemPrompt,
     ...(spawn ? { spawn } : {}),
   });
 
@@ -56,6 +57,7 @@ function parseArgs(argv) {
     provider: "codex",
     cwd: process.cwd(),
     model: null,
+    systemPrompt: null,
     prompt: null,
     once: false,
     jsonEvents: false,
@@ -71,6 +73,8 @@ function parseArgs(argv) {
       options.cwd = requireValue(argv, ++i, "--cwd");
     } else if (arg === "--model") {
       options.model = requireValue(argv, ++i, "--model");
+    } else if (arg === "--system-prompt" || arg === "--system") {
+      options.systemPrompt = requireValue(argv, ++i, arg);
     } else if (arg === "--prompt") {
       options.prompt = requireValue(argv, ++i, "--prompt");
       options.once = true;
@@ -239,6 +243,7 @@ function printHeader(options) {
   console.log(`provider=${options.provider}`);
   console.log(`cwd=${options.cwd}`);
   if (options.model) console.log(`model=${options.model}`);
+  if (options.systemPrompt) console.log(`systemPrompt=${previewText(options.systemPrompt, 160)}`);
   console.log("events=text_delta/thinking_start/thinking_delta/thinking_end/tool_start/tool_update/tool_end/done/error");
 }
 
@@ -302,6 +307,7 @@ Providers:
 Options:
   --cwd <path>             Working directory. Defaults to process.cwd().
   --model <id>             Provider model id, for example gpt-5.5 or sonnet.
+  --system-prompt <text>   System prompt. Alias: --system.
   --prompt <text>          Run one prompt and exit.
   --once                   Exit after the first interactive turn.
   --json-events            Print normalized events as JSON lines.
@@ -311,6 +317,7 @@ Options:
 Examples:
   npm run demo -- codex --model gpt-5.5
   npm run demo -- claude --model sonnet
+  npm run demo -- codex --model gpt-5.5 --system-prompt "You are concise"
   npm run demo -- codex --model gpt-5.5 --prompt "Reply with exactly DEMO_OK"
   echo "Summarize this repo" | npm run demo -- codex --once
 

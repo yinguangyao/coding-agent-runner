@@ -22,6 +22,7 @@ describe("friendly public runner api", () => {
       provider: "codex",
       cwd: "/repo",
       model: "gpt-5.5",
+      systemPrompt: "You are a strict reviewer.",
       prompt: "hi",
       deps: { runAgentTurn },
     })).resolves.toMatchObject({
@@ -32,6 +33,7 @@ describe("friendly public runner api", () => {
     });
     expect(runAgentTurn).toHaveBeenCalledWith(expect.objectContaining({
       model: "gpt-5.5",
+      systemPrompt: "You are a strict reviewer.",
     }));
   });
 

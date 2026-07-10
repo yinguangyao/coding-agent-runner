@@ -15,6 +15,7 @@ describe("runAgentTurn", () => {
       provider: "codex-cli",
       cwd: "/repo",
       model: "gpt-5.5",
+      systemPrompt: "You are a strict reviewer.",
       prompt: "hello",
       deps: { runCodexTurn },
     });
@@ -32,7 +33,10 @@ describe("runAgentTurn", () => {
         args: ["app-server", "--listen", "stdio://"],
         cwd: "/repo",
       },
-      threadStartParams: { model: "gpt-5.5" },
+      threadStartParams: {
+        model: "gpt-5.5",
+        developerInstructions: "You are a strict reviewer.",
+      },
     }));
   });
 
@@ -49,6 +53,7 @@ describe("runAgentTurn", () => {
       provider: "claude-code-cli",
       cwd: "/repo",
       model: "claude-sonnet-4-5",
+      systemPrompt: "You are a strict reviewer.",
       prompt: "hello",
       deps: { runClaudeNative },
     });
@@ -63,6 +68,7 @@ describe("runAgentTurn", () => {
       prompt: "hello",
       cwd: "/repo",
       model: "claude-sonnet-4-5",
+      appendSystemPrompt: "You are a strict reviewer.",
     }));
   });
 
@@ -93,6 +99,33 @@ describe("runAgentTurn", () => {
       prompt: "hello",
     }));
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies system prompt fallback for ACP providers", async () => {
+    const ensureSession = vi.fn(async () => "acp-session");
+    const prompt = vi.fn(async () => ({ stopReason: "end_turn" as const, crashReason: null }));
+    const close = vi.fn(async () => undefined);
+    const spawnAcpConnection = vi.fn(async () => ({ ensureSession, prompt, close }));
+
+    await runAgentTurn({
+      provider: "cursor-cli",
+      cwd: "/repo",
+      systemPrompt: "You are a strict reviewer.",
+      prompt: "hello",
+      deps: { spawnAcpConnection },
+    });
+
+    expect(prompt).toHaveBeenCalledWith(expect.objectContaining({
+      prompt: [
+        "<system>",
+        "You are a strict reviewer.",
+        "</system>",
+        "",
+        "<user>",
+        "hello",
+        "</user>",
+      ].join("\n"),
+    }));
   });
 
   it("does not prompt an ACP provider when the signal aborts during session setup", async () => {

@@ -44,6 +44,7 @@ export interface RunAgentTurnOptions {
   signal?: AbortSignal;
   sessionId?: string | null;
   model?: string | null;
+  systemPrompt?: string | null;
   env?: Record<string, string | undefined>;
   spawn?: Partial<Pick<SpawnParams, "command" | "args" | "env" | "wrapper">>;
   onEvent?: (event: AgentStreamEvent) => void;
@@ -71,7 +72,7 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
       onNotification: opts.onNotification,
       onTiming: opts.onTiming,
       logger: opts.logger,
-      threadStartParams: opts.model ? { model: opts.model } : undefined,
+      threadStartParams: buildCodexThreadStartParams(opts),
     });
     return {
       provider: opts.provider,
@@ -89,6 +90,7 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
       prompt: opts.prompt,
       cwd: opts.cwd,
       model: opts.model,
+      appendSystemPrompt: normalizeOptionalText(opts.systemPrompt) ?? undefined,
       resumeSessionId: opts.sessionId ?? undefined,
       signal,
       env: spawn.env,
@@ -130,7 +132,7 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
     }
     const outcome = await conn.prompt({
       acpSessionId,
-      prompt: opts.prompt,
+      prompt: applySystemPromptFallback(opts.prompt, opts.systemPrompt),
       signal,
       logger: opts.logger,
       onUpdate: (update) => {
@@ -151,6 +153,35 @@ export async function runAgentTurn(opts: RunAgentTurnOptions): Promise<AgentTurn
   } finally {
     await conn.close?.();
   }
+}
+
+function buildCodexThreadStartParams(opts: RunAgentTurnOptions): RunCodexTurnOptions["threadStartParams"] {
+  const model = normalizeOptionalText(opts.model);
+  const developerInstructions = normalizeOptionalText(opts.systemPrompt);
+  if (!model && !developerInstructions) return undefined;
+  return {
+    ...(model ? { model } : {}),
+    ...(developerInstructions ? { developerInstructions } : {}),
+  };
+}
+
+function applySystemPromptFallback(prompt: string, systemPrompt?: string | null): string {
+  const normalized = normalizeOptionalText(systemPrompt);
+  if (!normalized) return prompt;
+  return [
+    "<system>",
+    normalized,
+    "</system>",
+    "",
+    "<user>",
+    prompt,
+    "</user>",
+  ].join("\n");
+}
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 function mergeSpawn(base: SpawnParams, override: RunAgentTurnOptions["spawn"]): SpawnParams {
